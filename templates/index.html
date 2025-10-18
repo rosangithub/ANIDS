@@ -1,5 +1,6 @@
+<!-- 
 <!DOCTYPE html>
-<html lang="en">
+ <html lang="en">
 <head>
   <title>Auth system</title>
   <meta charset="utf-8">
@@ -23,5 +24,58 @@
   
 </div>
 
+</body>
+</html>-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANIDS - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>ANIDS</h1>
+            <nav>
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h2>Anomaly-Based Network Intrusion Detection System</h2>
+            <p>Monitor your network in real-time and detect anomalies using machine learning.</p>
+            <a href="{{ url_for('register') }}" class="btn">Get Started</a>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <div class="feature">
+                <h3>Real-Time Detection</h3>
+                <p>Detect network anomalies instantly with machine learning algorithms.</p>
+            </div>
+            <div class="feature">
+                <h3>Secure Login</h3>
+                <p>Only authorized users can access the dashboard and manage alerts.</p>
+            </div>
+            <div class="feature">
+                <h3>Visual Dashboard</h3>
+                <p>View analytics, reports, and alerts in a user-friendly interface.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 ANIDS | Developed by Rosan Shrestha</p>
+        </div>
+    </footer>
 </body>
 </html>
