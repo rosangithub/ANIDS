@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANIDS</title>
+    <link rel="shortcut icon" type="image/png" href="https://img.icons8.com/small/64/ffffff/detective.png"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+        [x-cloak] { 
+            display: none !important; 
+        }
+        :root {
+            --primary: rgb(88, 40, 244);
+            --primary-hover: rgb(69, 29, 200);
+            --font1: 'Lobster', sans-serif;
+        }
+        h1 {
+            font-size: 4rem;
+            line-height: 1.2;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            font-family: var(--font1);
+        }
+        h2 {
+            font-size: 1.5rem; 
+            font-weight: bold;
+            line-height: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        .font1 {
+            font-family: var(--font1);
+        }
+        .button {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            text-align: center;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            padding: 0 1rem;
+            min-height: 3.3rem;
+            font-weight: 600;
+            box-shadow: 0 4px 3px rgba(0, 0, 0, 0.1);
+            transition-property: transform;
+            transition-duration: .2s;
+            color: white;
+            background-color: var(--primary);
+        }
+        .button:hover {
+            background-color: var(--primary-hover);
+        }
+        .button:active {
+            transform: scale(0.95);
+        }
+        .navitems>li>a {
+            @apply flex items-center gap-2 h-12 px-4 hover:bg-gray-700 rounded-lg;
+        }
+        .card {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            background-color: white;
+            padding-bottom: 1rem;
+        }
+        .hoverlist>* {
+            @apply hover:bg-gray-100 rounded-md transition duration-150;
+        }
+        .hoverlist>*>a {
+            @apply flex items-center p-2;
+        }
+        .highlight {
+            @apply !bg-indigo-100;
+        }
+        .titleBlip {
+            animation: 1s fadeIn;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            10% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        form {
+            margin-top: 1.5rem;
+        }
+        form p {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        label, input {
+          display: inline-block;
+        }
+        form p label {
+            width: 7rem;
+            }
+        label {
+            margin: 6px 0 3px;
+        }
+        input, textarea {
+            width: 100%;
+        }
+        input[type="file"], select {
+            background-color: white;
+            padding-left: 0;
+        }
+        label[for="id_remember"] {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+        input[name="remember"] {
+            width: auto;
+        }
+        #id_tags{
+            padding-top: 0.5rem;
+        }
+        #id_tags div {
+            display: inline-block;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        #id_tags div label {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            border: 2px solid rgb(229 231 235);
+            width: auto;
+            cursor: pointer;
+        }
+        #id_tags div label input {
+            width: auto;
+            margin-right: 5px;
+        }
+        .textarea, textarea {
+            margin-bottom: 1rem;
+        }
+        .textarea, textarea, input {
+            border-radius: var(--radius-sm);
+            padding: 1rem 1.2rem;
+            background-color: rgba(232, 240, 254, 1);
+        }
+        .errorlist li {
+            color: rgb(253, 88, 49);
+            padding: 0.5rem;
+            padding-left: 1rem;
+            border-left: 5px solid rgb(253, 88, 49);
+            margin-bottom: 1rem;
+        }
+        .tab {
+            cursor: pointer;
+            padding: 0.3rem;
+            color: rgb(0,0,0,0.4);
+        }
+        .tab.selected {
+            border-bottom: 1px solid grey;
+            color: black;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    {% include "includes/header.html" %}
+  
+ 
+
+</body>
+</html>

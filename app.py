@@ -26,8 +26,8 @@ with app.app_context():
 
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+    return render_template('home.html')
 
 @app.route('/register',methods=['GET','POST'])
 def register():
@@ -41,6 +41,7 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         return redirect('/login')
+
 
 
 
