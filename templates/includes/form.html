@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>form page</title>
+    
+<style>
+  
+    .form-container {
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
+        background: #f7f7f7;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .form-container h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        
+    }
+    .grid input {
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        position:center;
+    }
+    button:hover {
+        background: #0056b3;
+    }
+    .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #d4edda;
+        color: #155724;
+        border-radius: 5px;
+        text-align: center;
+    }
+.button_container {
+    text-align: center;
+    text-decoration: none;
+    color: white;
+    background: #007bff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    display: inline-block;
+    margin-top: 20px;
+}
+</style>
+</head>
+<body>
+    
+<div class="form-container">
+    <h2>Packet Details</h2>
+    <p >Please fill in the following features:</p>
+    <form method="POST" action="/predict">
+        <div class="grid">
+            <input type="text" name="fwd_packet_length_max" placeholder="Fwd Packet Length Max">
+            <input type="text" name="fwd_packet_length_mean" placeholder="Fwd Packet Length Mean">
+            <input type="text" name="bwd_packets_s" placeholder="Bwd Packets/s">
+            <input type="text" name="total_length_fwd_packets" placeholder="Total Length of Fwd Packets">
+            <input type="text" name="subflow_fwd_bytes" placeholder="Subflow Fwd Bytes">
+            <input type="text" name="flow_packets_s" placeholder="Flow Packets/s">
+            <input type="text" name="packet_length_std" placeholder="Packet Length Std">
+            <input type="text" name="flow_iat_mean" placeholder="Flow IAT Mean">
+            <input type="text" name="avg_fwd_segment_size" placeholder="Avg Fwd Segment Size">
+            <input type="text" name="flow_iat_max" placeholder="Flow IAT Max">
+            <input type="text" name="init_win_bytes_backward" placeholder="Init Win Bytes Backward">
+            <input type="text" name="avg_bwd_segment_size" placeholder="Avg Bwd Segment Size">
+            <input type="text" name="bwd_packet_length_mean" placeholder="Bwd Packet Length Mean">
+            <input type="text" name="flow_duration" placeholder="Flow Duration">
+            <input type="text" name="bwd_packet_length_std" placeholder="Bwd Packet Length Std">
+            <input type="text" name="bwd_packet_length_max" placeholder="Bwd Packet Length Max">
+            <input type="text" name="subflow_bwd_bytes" placeholder="Subflow Bwd Bytes">
+            <input type="text" name="total_length_bwd_packets" placeholder="Total Length of Bwd Packets">
+            <input type="text" name="destination_port" placeholder="Destination Port">
+            <input type="text" name="packet_length_variance" placeholder="Packet Length Variance">
+        </div>
+         <div class="button-container">
+            <button type="submit">Predict</button>
+        </div>
+    </form>
+
+    {% if result %}
+        <div class="result">
+            <h3>{{ result }}</h3>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

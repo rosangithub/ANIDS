@@ -1,11 +1,71 @@
 from flask import Flask, request,render_template, redirect,session
 from flask_sqlalchemy import SQLAlchemy
 import bcrypt
+import joblib
+import numpy as np
+import sklearn
+
 
 app = Flask(__name__)
+
+#load the model
+model = joblib.load('model/StackingEnsemble.joblib')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///user.db'
 db = SQLAlchemy(app)
 app.secret_key = 'secret_key'
+
+
+# List of features in the exact order
+FEATURES = [
+    'fwd_packet_length_max',
+    'fwd_packet_length_mean',
+    'bwd_packets_s',
+    'total_length_fwd_packets',
+    'subflow_fwd_bytes',
+    'flow_packets_s',
+    'packet_length_std',
+    'flow_iat_mean',
+    'avg_fwd_segment_size',
+    'flow_iat_max',
+    'init_win_bytes_backward',
+    'avg_bwd_segment_size',
+    'bwd_packet_length_mean',
+    'flow_duration',
+    'bwd_packet_length_std',
+    'bwd_packet_length_max',
+    'subflow_bwd_bytes',
+    'total_length_bwd_packets',
+    'destination_port',
+    'packet_length_variance'
+]
+# @app.route('/predict', methods=['GET', 'POST'])
+# def packet_form():
+#     result = None
+#     if request.method == 'POST':
+#         try:
+#             # Collect form inputs in order
+#             input_data = []
+#             for feature in FEATURES:
+#                 value = request.form.get(feature)
+#                 if value is None or value.strip() == '':
+#                     return render_template('form.html', result=f"Error: {feature} is required.")
+#                 input_data.append(float(value))
+            
+#             # Convert to numpy array and reshape for prediction
+#             input_array = np.array(input_data).reshape(1, -1)
+            
+#             # Predict using the stacking model
+#             prediction = model.predict(input_array)[0]
+            
+#             # If it's classification, you can map numeric to labels
+#             result = f"Predicted Value: {prediction}"
+        
+#         except ValueError:
+#             result = "Invalid input! Please enter numeric values only."
+#         except Exception as e:
+#             result = f"Error: {str(e)}"
+
+#     return render_template('dashboard.html', result=result)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
