@@ -1,43 +1,28 @@
-from flask import Flask, request,render_template, redirect,session
+from flask import Flask, request,render_template, redirect,session,Response
 from flask_sqlalchemy import SQLAlchemy
 import bcrypt
 import joblib
 import numpy as np
 import sklearn
+global filename
+filename=""
 
 
 app = Flask(__name__)
 
 #load the model
-model = joblib.load('model/StackingEnsemble.joblib')
+# model = joblib.load('model/StackingEnsemble.joblib')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///user.db'
 db = SQLAlchemy(app)
 app.secret_key = 'secret_key'
 
+# from youtube tutorial
 
-# List of features in the exact order
-FEATURES = [
-    'fwd_packet_length_max',
-    'fwd_packet_length_mean',
-    'bwd_packets_s',
-    'total_length_fwd_packets',
-    'subflow_fwd_bytes',
-    'flow_packets_s',
-    'packet_length_std',
-    'flow_iat_mean',
-    'avg_fwd_segment_size',
-    'flow_iat_max',
-    'init_win_bytes_backward',
-    'avg_bwd_segment_size',
-    'bwd_packet_length_mean',
-    'flow_duration',
-    'bwd_packet_length_std',
-    'bwd_packet_length_max',
-    'subflow_bwd_bytes',
-    'total_length_bwd_packets',
-    'destination_port',
-    'packet_length_variance'
-]
+app.config['SESSION_TYPE'] = 'filesystem'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # @app.route('/predict', methods=['GET', 'POST'])
 # def packet_form():
 #     result = None
@@ -137,5 +122,174 @@ def logout():
     session.pop('email',None)
     return redirect('/login')
 
-if __name__ == '__main__':
+# #{'Dos':0,'Probe':1,'R2L':2,'U2R':3,'Normal':4}
+# def decode(output):
+#     print(output)
+#     if output==0:
+#         return 'Dos Attack Found in Packet'
+#     elif output==1:
+#         return 'Probe Attack Found in Packet'
+#     elif output==2:
+#         return 'R2L Attack Found in Packet'
+#     elif output==3:
+#         return 'U2R Attack Found in Packet'
+#     elif output==4:
+#         return 'Normal Packet'
+
+
+import os
+import pandas as pd
+model_filename='model/StackingEnsemble.joblib'
+loaded_model = joblib.load(model_filename)
+
+# print(loaded_model.feature_names_in_)
+#Reverse mapping dictionary to decode predicted class
+class_mapping_reverse={
+    0:'BENIGN',
+    1:'Bot',
+    2:'DDoS',
+    3:'DoS GoldenEye',
+    4:'DoS Hulk',
+    5:'DoS Slowhttptest',
+    6:'DoS slowloris',
+    7:'FTP-Patator',
+    8:'Heartbleed',
+    9:'Infiltration',
+    10:'PortScan',
+    11:'SSH-Patator',
+    12:'Web Attack � Brute Force',
+    13:'Web Attack � Sql Injection',
+    14:'Web Attack � XSS'    
+}
+
+
+# List of features in the exact order
+feature_order=[
+   ['Fwd Packet Length Max',
+ 'Fwd Packet Length Mean',
+ 'Bwd Packets/s',
+ 'Total Length of Fwd Packets',
+ 'Subflow Fwd Bytes',
+ 'Flow Packets/s',
+ 'Packet Length Std',
+ 'Flow IAT Mean',
+ 'Avg Fwd Segment Size',
+ 'Flow IAT Max',
+ 'Init_Win_bytes_backward',
+ 'Avg Bwd Segment Size',
+ 'Bwd Packet Length Mean',
+ 'Flow Duration',
+ 'Bwd Packet Length Std',
+ 'Bwd Packet Length Max',
+ 'Subflow Bwd Bytes',
+ 'Total Length of Bwd Packets',
+ 'Destination Port',
+ 'Packet Length Variance']
+]
+# def preprocess_input(user_input):
+#     #convert input to the appropriate data types
+#     for column in feature_order:
+#         user_input[column] = float(user_input[column])
+#     return pd.DataFrame([user_input])
+def preprocess_input(user_input):
+    """
+    Converts user input values to float and returns a DataFrame
+    user_input: dict of form inputs
+    """
+    processed_input = {}
+    for column in feature_order:
+        value = user_input.get(column)
+        if value is None or value == '':
+            raise ValueError(f"Missing value for {column}")
+        try:
+            processed_input[column] = float(value)
+        except ValueError:
+            raise ValueError(f"Invalid numeric value for {column}: {value}")
+    return pd.DataFrame([processed_input])
+
+
+from flask import Flask,jsonify
+
+@app.route('/predict', methods=['GET', 'POST'])
+def predict():
+    result = None
+    try:
+        if request.method == 'POST':
+            user_input = dict(request.form)
+            # Preprocess
+            user_data = preprocess_input(user_input)
+
+            # Prediction
+            prediction = loaded_model.predict(user_data)[0]
+            decoded_class = class_mapping_reverse.get(prediction, 'Unknown')
+            result = f"Prediction: {decoded_class}"
+
+    except Exception as e:
+        print(f"Error: {e}")
+        result = f"Error: {str(e)}"
+
+    return render_template('dashboard.html', result=result, feature_order=feature_order)
+
+
+
+#store the prediction temporarily
+last_prediction = []
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    global last_prediction
+    #check if the post request has the file part
+    if 'file' not in request.files:
+        return render_template('upload.html',error='No file part')
+    file = request.files['file']
+    #if the user does not select a file, the browser also
+    #submits an empty part without filename
+    if file.filename == '':
+        return render_template('upload.html',error='No selected file')
+    try:
+        #Read the csv file
+        df=pd.read_csv(file)
+       
+        #Make predictions using the loaded model
+        predictions = loaded_model.predict(df)
+        #   Get the class names for prediction
+        class_names=[class_mapping_reverse.get(prediction,'Unknown') for prediction in predictions]
+
+        #convert the int64 types to native python integers
+        predictions=predictions.astype(np.int64).tolist() 
+
+        #prepare the response with both class index and class name
+        response=[{'sr_no': i+1,'class_index':prediction,'class_name':class_name} 
+                  for i, (prediction,class_name) in enumerate(zip(predictions,class_names))]
+
+        #Store the last prediction
+        last_prediction = response
+
+        #Return the HTML page with predictions
+        return render_template('upload.html',predictions=response)
+    
+
+    except Exception as e:
+        return render_template('upload.html',error=f"Error processing file: {str(e)}")
+
+@app.route('/download_report')
+def download_report():
+    global last_prediction
+    if not last_prediction:
+        return Response("No predictions available to download.", mimetype='text/plain')
+    #Create CSV content
+    report_lines=["Intrusion Detection Report\n"]
+    report_lines = ["Sr No,Class Index,Class Name\n"]
+    for item in last_prediction:
+        line = f"{item['sr_no']},{item['class_index']},{item['class_name']}\n"
+        report_lines.append(line)   
+    report_content = ''.join(report_lines)
+    return Response(
+        report_content,
+        mimetype='text/csv',
+        headers={'Content-Disposition':'attachment;filename=network_intrusion_report.csv'}
+    )
+
+
+
+if __name__=='__main__':
     app.run(debug=True)
