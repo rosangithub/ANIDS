@@ -11,7 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style type="text/tailwindcss">
+     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+ 
+     <!--<style type="text/tailwindcss">
         [x-cloak] { 
             display: none !important; 
         }
@@ -167,12 +169,14 @@
             border-bottom: 1px solid grey;
             color: black;
         }
-    </style>
+    </style>-->
 </head>
 <body class="bg-gray-100">
-    {% include "includes/header.html" %}
+    {% block content  %}
+
+   
   
- 
+ {% endblock  %}
 
 </body>
 </html>

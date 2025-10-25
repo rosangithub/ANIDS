@@ -1,0 +1,54 @@
+/* Page background */
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+.login-page {
+    background: url("../images/login-bg.jpg") no-repeat center center;
+    background-size: cover;
+    width: 100%;
+    height: 100vh;
+}
+
+/* Card styling */
+.login-card {
+    border-radius: 1rem;
+    overflow: hidden;
+    max-width: 800px;
+    width: 90%;
+    background-color: rgba(255,255,255,0.95);
+    animation: fadeIn 1s ease-in-out;
+}
+
+/* Headings */
+.login-card h2 {
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #6C63FF;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #574bff;
+}
+
+/* Flash messages */
+.alert {
+    font-size: 0.9rem;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(-20px);}
+    100% { opacity: 1; transform: translateY(0);}
+}
+
+/* Responsive Image */
+.login-card img {
+    object-fit: cover;
+}

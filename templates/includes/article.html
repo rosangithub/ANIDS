@@ -1,4 +1,7 @@
   
+  {% block head %}
+  <link rel="stylesheet" href="{{ url_for('static',filename="css/style.css")}}">
+  {% endblock  %}
 <article class="py-10 px-5">
     <h2 class="text-2xl font-bold mb-4">Overview</h2>
     <p class="mb-4">The Anomaly Based Intrusion Detection System (ANIDS) leverages ensemble machine learning techniques to identify and mitigate potential threats in real-time. By analyzing network traffic patterns and user behaviors, ANIDS can effectively distinguish between legitimate activities and potential intrusions.</p>

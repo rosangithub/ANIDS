@@ -1,10 +1,13 @@
-from flask import Flask, request,render_template, redirect,session,Response
+from flask import Flask, request,render_template, redirect,session,Response,flash
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+from model import db,User
 import bcrypt
 import joblib
 import numpy as np
 import sklearn
 global filename
+
 filename=""
 
 
@@ -12,8 +15,14 @@ app = Flask(__name__)
 
 #load the model
 # model = joblib.load('model/StackingEnsemble.joblib')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///user.db'
-db = SQLAlchemy(app)
+#configure your database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Bind the SQLAlchemy object to your Flask app
+db.init_app(app)
+
+
 app.secret_key = 'secret_key'
 
 # from youtube tutorial
@@ -52,19 +61,20 @@ def allowed_file(filename):
 
 #     return render_template('dashboard.html', result=result)
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100))
+# class User(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     name = db.Column(db.String(100), nullable=False)
+#     email = db.Column(db.String(100), unique=True)
+#     password = db.Column(db.String(100))
 
-    def __init__(self,email,password,name):
-        self.name = name
-        self.email = email
-        self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+#     def __init__(self,email,password,name):
+#         self.name = name
+#         self.email = email
+#         self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
-    def check_password(self,password):
-        return bcrypt.checkpw(password.encode('utf-8'),self.password.encode('utf-8'))
+#     def check_password(self,password):
+#         return bcrypt.checkpw(password.encode('utf-8'),self.password.encode('utf-8'))
+
 
 with app.app_context():
     db.create_all()
@@ -74,48 +84,90 @@ with app.app_context():
 def home():
     return render_template('home.html')
 
-@app.route('/register',methods=['GET','POST'])
+# @app.route('/register',methods=['GET','POST'])
+# def register():
+#     if request.method == 'POST':
+#         # handle request
+#         name = request.form['name']
+#         email = request.form['email']
+#         password = request.form['password']
+       
+
+#         new_user = User(name=name,email=email,password=password)
+#         db.session.add(new_user)
+#         db.session.commit()
+#         return redirect('/login')
+
+
+@app.route('/register', methods=['GET','POST'])
 def register():
     if request.method == 'POST':
-        # handle request
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
+        confirm_password = request.form.get('confirm_password')
 
-        new_user = User(name=name,email=email,password=password)
+        # Validate
+        if not name or not email or not password:
+            flash("Please fill in all fields", "error")
+            return redirect('/register')
+
+        if password != confirm_password:
+            flash("Passwords do not match", "error")
+            return redirect('/register')
+
+        # Check if user exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash("Email already registered. Please login.", "error")
+            return redirect('/register')
+
+        # Create new user with hashed password
+        new_user = User(name=name, email=email)
+        new_user.set_password(password)
+
         db.session.add(new_user)
         db.session.commit()
+
+        flash("Registration successful! Please login.", "success")
         return redirect('/login')
-
-
-
 
     return render_template('register.html')
 
-@app.route('/login',methods=['GET','POST'])
+@app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
 
         user = User.query.filter_by(email=email).first()
-        
+
         if user and user.check_password(password):
             session['email'] = user.email
+            flash("Login successful!", "success")
             return redirect('/dashboard')
         else:
-            return render_template('login.html',error='Invalid user')
+            flash("Invalid email or password", "error")
+            return redirect('/login')
 
     return render_template('login.html')
 
+# @app.route('/dashboard')
+# def dashboard():
+#     if session['email']:
+#         user = User.query.filter_by(email=session['email']).first()
+#         return render_template('dashboard.html',user=user)
+    
+#     return redirect('/login')
 
 @app.route('/dashboard')
 def dashboard():
-    if session['email']:
+    if 'email' in session:
         user = User.query.filter_by(email=session['email']).first()
-        return render_template('dashboard.html',user=user)
-    
-    return redirect('/login')
+        return render_template('dashboard.html', user=user)
+    else:
+        flash("Please login first", "error")
+        return redirect('/login')
 
 @app.route('/logout')
 def logout():
