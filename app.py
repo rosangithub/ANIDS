@@ -280,7 +280,7 @@ def predict():
         print(f"Error: {e}")
         result = f"Error: {str(e)}"
 
-    return render_template('dashboard.html', result=result, feature_order=feature_order)
+    return render_template('predict.html', result=result, feature_order=feature_order)
 
 
 
