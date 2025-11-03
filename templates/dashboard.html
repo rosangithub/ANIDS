@@ -36,15 +36,15 @@
     </div>
 
     <!-- === Charts Section === -->
+      {% if attack_counts %}
     <div class="charts">
-
         <!-- Chart 1: Attack Type Distribution -->
-        {% if attack_counts %}
+       
         <div class="chart-container">
             <h2>Attack Type Distribution </h2>
             <canvas id="attackChart"></canvas>
         </div>
-        {% endif %}
+        
 
         <!-- Chart 2: Normal vs Attack Summary -->
         <div class="chart-container">
@@ -53,15 +53,14 @@
         </div>
 
         <!-- Chart 3: All Categories Pie Chart -->
-        {% if attack_counts %}
+       
         <div class="chart-container">
             <h2>All Traffic Categories </h2>
             <canvas id="categoryChart"></canvas>
         </div>
-        {% endif %}
-
+       
         <!-- Chart 4: Prediction Trend Line Chart -->
-        {% if attack_counts %}
+       
         <div class="chart-container">
             <h2>Prediction Trend </h2>
             <canvas id="trendChart"></canvas>

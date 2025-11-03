@@ -6,15 +6,28 @@ db = SQLAlchemy()  # Initialize SQLAlchemy here
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(120), unique=True)
+    password = db.Column(db.String(200))
+    role = db.Column(db.String(50))
+    last_login = db.Column(db.DateTime)
 
-    def set_password(self, password):
-        self.password = generate_password_hash(password)
+    def check_password(self, pwd):
+        return check_password_hash(self.password, pwd)
 
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
+    def set_password(self, new_pwd):
+        self.password = generate_password_hash(new_pwd)
+        db.session.commit()
 
-    def __repr__(self):
-        return f"<User {self.email}>"
+# class Upload(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     filename = db.Column(db.String(200))
+#     timestamp = db.Column(db.DateTime)
+
+# class Prediction(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     upload_id = db.Column(db.Integer, db.ForeignKey('upload.id'))
+#     result = db.Column(db.String(50))  # BENIGN or ATTACK
+#     timestamp = db.Column(db.DateTime)

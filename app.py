@@ -5,6 +5,8 @@ from model import db,User
 import bcrypt
 import joblib
 import numpy as np
+import pandas as pd
+import os
 import sklearn
 global filename
 import matplotlib
@@ -84,26 +86,13 @@ def allowed_file(filename):
 
 
 with app.app_context():
+    # db.drop_all()
     db.create_all()
 
 
 @app.route('/')
 def home():
     return render_template('home.html')
-
-# @app.route('/register',methods=['GET','POST'])
-# def register():
-#     if request.method == 'POST':
-#         # handle request
-#         name = request.form['name']
-#         email = request.form['email']
-#         password = request.form['password']
-       
-
-#         new_user = User(name=name,email=email,password=password)
-#         db.session.add(new_user)
-#         db.session.commit()
-#         return redirect('/login')
 
 
 @app.route('/register', methods=['GET','POST'])
@@ -136,7 +125,7 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
-        flash("Registration successful! Please login.", "success")
+        flash("Registration successful! Please login.")
         return redirect('/login')
 
     return render_template('register.html')
@@ -151,10 +140,10 @@ def login():
 
         if user and user.check_password(password):
             session['email'] = user.email
-            flash("Login successful!", "success")
+            flash("Login successful!",'success')
             return redirect('/dashboard')
         else:
-            flash("Invalid email or password", "error")
+            flash("Invalid email or password", "danger")
             return redirect('/login')
 
     return render_template('login.html')
@@ -284,8 +273,6 @@ def logout():
 #         return 'Normal Packet'
 
 
-import os
-import pandas as pd
 model_filename='model/StackingEnsemble.joblib'
 loaded_model = joblib.load(model_filename)
 

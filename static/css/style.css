@@ -406,3 +406,35 @@ table tbody tr:hover {
     .chart-container { width: 100%; }
     form { grid-template-columns: 1fr; }
 }
+
+.landing-features {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    padding: 4rem 5%;
+    background-color: #141625;
+}
+
+.landing-feature-card {
+    background-color: #1a1c2b;
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    width: 250px;
+    transition: 0.3s;
+}
+
+.landing-feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.landing-feature-card h3 {
+    margin-bottom: 1rem;
+    color: #58a6ff;
+}
+
+.landing-feature-card p {
+    font-size: 0.95rem;
+    color: #ccc;
+}
