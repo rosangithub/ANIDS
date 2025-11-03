@@ -1,170 +1,7 @@
-{% extends "layout.html" %}
 {% block head %}
-<link rel="stylesheet" href="{{url_for('static',filename="css/style.css")}}">
-<style>
-    /* Full-page background */
-    body {
-        background: url('{{ url_for("static", filename="images/bg-dashboard.png") }}') no-repeat center center fixed;
-        background-size: cover;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-        padding: 0;
-    }
-
-    /* Overlay for better contrast */
-    body::before {
-        content: "";
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background-color: rgba(0,0,0,0.4);
-        z-index: -1;
-    }
-
-    /* Main container card */
-    .container {
-        max-width: 900px;
-        margin: 60px auto;
-        padding: 3rem 2rem;
-        background-color: rgba(255,255,255,0.95);
-        border-radius: 20px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-        text-align: center;
-    }
-
-    
-    h1 {
-        font-size: 2.8rem;
-        color: #4f46e5;
-        font-weight: 700;
-        margin-bottom: 2rem;
-    }
-
-    /* Form card */
-    .form-container {
-        background: linear-gradient(to bottom right, #eef2ff, #dbeafe);
-        padding: 2rem 2.5rem;
-        border-radius: 20px;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        margin-bottom: 3rem;
-        transition: transform 0.3s ease;
-    }
-
- /* Center the file input */
-.form-container form {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Center horizontally */
-}
-
-/* Style for file input */
-input[type="file"] {
-    padding: 0.8rem;
-    border: 2px solid #4f46e5; /* Corrected */
-    border-radius: 12px;
-    width: 70%;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 1.5rem;
-    background-color: white;
-    font-size: 1rem;
-}
-
-input[type="file"]:hover {
-    border-color: #3730a3;
-    background-color: #e0e7ff;
-}
-
-    /* Buttons */
-    .button {
-        display: inline-block;
-        margin: 1rem 0.5rem;
-        padding: 0.8rem 2rem;
-        border-radius: 12px;
-        border: none;
-        background: linear-gradient(to right, #4f46e5, #6366f1);
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-
-    .button:hover {
-        background: linear-gradient(to right, #3730a3, #4f46e5);
-        transform: scale(1.05);
-    }
-
-    /* Error message */
-    .error {
-        color: #dc2626;
-        font-weight: bold;
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
-    }
-
-    /* Result table styling */
-    .result {
-        margin-top: 3rem;
-        display: flex;
-        justify-content: center;  /* Center horizontally */
-    }
-
-    table {
-        width: 100%;
-        max-width: 700px;
-        border-collapse: collapse;
-        border-radius: 15px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        background-color: white;
-        text-align: center;
-        transition: transform 0.2s ease;
-    }
-
-    table:hover {
-        transform: scale(1.01);
-    }
-
-    table th, table td {
-        padding: 1rem 0.8rem;
-        font-size: 1rem;
-    }
-
-    table thead {
-        background: linear-gradient(to right, #4f46e5, #6366f1);
-        color: white;
-        font-weight: bold;
-        font-size: 1.1rem;
-    }
-
-    table tbody tr:nth-child(even) {
-        background-color: #f3f4f6;
-    }
-
-    table tbody tr:hover {
-        background-color: #e0e7ff;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        input[type="file"] {
-            width: 90%;
-        }
-
-        table {
-            width: 100%;
-        }
-
-        .button {
-            width: 45%;
-            margin: 0.5rem 0.2rem;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{url_for('static',filename='css/style.css')}}">
 {% endblock head %}
+
 
 {% block content %}
 <div class="container">
@@ -174,14 +11,15 @@ input[type="file"]:hover {
         <p class="error">{{ error }}</p>
     {% endif %}
 
+    <!-- Upload Section -->
     <div class="form-container">
         <form method="POST" enctype="multipart/form-data">
             <input type="file" name="file" accept=".csv" required>
-            <br>
             <button class="button" type="submit">Predict</button>
         </form>
     </div>
 
+    <!-- Prediction Results Table -->
     {% if predictions %}
     <div class="result">
         <table>
@@ -205,9 +43,62 @@ input[type="file"]:hover {
     </div>
     {% endif %}
 
-    <div>
+    <!-- Navigation Buttons -->
+    <div class="actions">
         <button class="button" onclick="window.location.href='/dashboard';">Go to Dashboard</button>
         <button class="button" onclick="window.location.href='/download_report';">Download Report</button>
     </div>
+
+    <!-- Visualization Charts -->
+    {% if attack_counts or plot_url %}
+    <div class="charts">
+        {% if attack_counts %}
+        <div class="chart-container">
+            <h2>Attack Type Distribution</h2>
+            <canvas id="attackChart"></canvas>
+        </div>
+        {% endif %}
+
+        {% if plot_url %}
+        <div class="chart-container">
+            <h3>Prediction Distribution</h3>
+            <img src="data:image/png;base64,{{ plot_url }}" 
+                 alt="Prediction Chart" 
+                 style="max-width: 100%; border-radius: 10px;">
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Chart.js Script -->
+    {% if attack_counts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('attackChart');
+        const labels = {{ attack_counts.keys()|list|safe }};
+        const data = {{ attack_counts.values()|list|safe }};
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#111', font: { size: 14 } }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+    {% endif %}
 </div>
 {% endblock %}

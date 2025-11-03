@@ -1,6 +1,192 @@
-
 {% extends 'layout.html' %}
-{% block content %}
-   
-{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock head %}
+
+{% block content %}
+
+<div class="container">
+    <h1>Network Intrusion Detection Dashboard </h1>
+
+    <!-- === Summary Stats === -->
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-number">{{ total_predictions }}</div>
+            <div class="stat-label">Total Records</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ attack_count }}</div>
+            <div class="stat-label">Total Attacks Detected</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ normal_count }}</div>
+            <div class="stat-label">Normal Traffic</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">
+                {% if accuracy is not none %}
+                    {{ accuracy }}%
+                {% else %}
+                    N/A
+                {% endif %}
+            </div>
+            <div class="stat-label">Model Accuracy</div>
+        </div>
+    </div>
+
+    <!-- === Charts Section === -->
+    <div class="charts">
+
+        <!-- Chart 1: Attack Type Distribution -->
+        {% if attack_counts %}
+        <div class="chart-container">
+            <h2>Attack Type Distribution </h2>
+            <canvas id="attackChart"></canvas>
+        </div>
+        {% endif %}
+
+        <!-- Chart 2: Normal vs Attack Summary -->
+        <div class="chart-container">
+            <h2>Normal vs Attack Summary </h2>
+            <canvas id="summaryChart"></canvas>
+        </div>
+
+        <!-- Chart 3: All Categories Pie Chart -->
+        {% if attack_counts %}
+        <div class="chart-container">
+            <h2>All Traffic Categories </h2>
+            <canvas id="categoryChart"></canvas>
+        </div>
+        {% endif %}
+
+        <!-- Chart 4: Prediction Trend Line Chart -->
+        {% if attack_counts %}
+        <div class="chart-container">
+            <h2>Prediction Trend </h2>
+            <canvas id="trendChart"></canvas>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- === Buttons === -->
+    <div class="actions">
+        <button class="button" onclick="window.location.href='/upload';">Upload New Data</button>
+        <button class="button" onclick="window.location.href='/download_report';">Download Report</button>
+    </div>
+</div>
+
+<!-- === Chart.js === -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if attack_counts %}
+<script>
+    const attackLabels = {{ attack_counts.keys()|list|safe }};
+    const attackData = {{ attack_counts.values()|list|safe }};
+    const normalCount = {{ normal_count }};
+    const attackCount = {{ attack_count }};
+
+    // === Chart 1: Attack Type Distribution ===
+    new Chart(document.getElementById('attackChart'), {
+        type: 'bar',
+        data: {
+            labels: attackLabels,
+            datasets: [{
+                label: 'Attack Count',
+                data: attackData,
+                backgroundColor: [
+                    '#22d3ee', '#60a5fa', '#a78bfa', '#f87171', '#facc15',
+                    '#4ade80', '#f472b6', '#94a3b8', '#fb923c', '#34d399'
+                ]
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false },
+            },
+            scales: {
+                x: { ticks: { color: '#cbd5e1' } },
+                y: { ticks: { color: '#cbd5e1' } }
+            }
+        }
+    });
+
+    // === Chart 2: Normal vs Attack ===
+    new Chart(document.getElementById('summaryChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Normal Traffic', 'Attack Traffic'],
+            datasets: [{
+                label: 'Record Count',
+                data: [normalCount, attackCount],
+                backgroundColor: ['#10b981', '#ef4444']
+            }]
+        },
+        options: {
+            plugins: {
+                
+                legend: { display: false }
+            },
+            scales: {
+                x: { ticks: { color: '#cbd5e1' } },
+                y: { ticks: { color: '#cbd5e1' } }
+            }
+        }
+    });
+
+    // === Chart 3: All Categories Pie Chart ===
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: attackLabels,
+            datasets: [{
+                label: 'Traffic Distribution',
+                data: attackData,
+                backgroundColor: [
+                    '#34d399', '#f87171', '#60a5fa', '#facc15', '#a78bfa',
+                    '#4ade80', '#fb7185', '#c084fc', '#38bdf8', '#fbbf24'
+                ],
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            plugins: {
+                title: { display: true, text: 'All Traffic Categories', color: '#f8fafc' },
+                legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
+            }
+        }
+    });
+
+    // === Chart 4: Prediction Trend Line Chart ===
+    // Fake trend data (if you have timestamps, replace this part in Flask)
+    const trendLabels = Array.from({length: attackData.length}, (_, i) => "Batch " + (i + 1));
+    const trendData = attackData.map((v, i) => v + Math.floor(Math.random() * 10)); // simulate change
+
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Prediction Trend',
+                data: trendData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#1e3a8a'
+            }]
+        },
+        options: {
+            plugins: {
+            
+                legend: { labels: { color: '#e2e8f0' } }
+            },
+            scales: {
+                x: { ticks: { color: '#cbd5e1' } },
+                y: { ticks: { color: '#cbd5e1' } }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
