@@ -521,7 +521,53 @@ def download_report():
         headers={'Content-Disposition':'attachment;filename=network_intrusion_report.csv'}
     )
 
+@app.route('/about')
+def about():
+    return render_template('aboutus.html')
 
+
+    if 'email' not in session:
+        flash("Please login to view profile", "error")
+        return redirect('/login')
+
+    # Get current user
+    user = User.query.filter_by(email=session['email']).first()
+    if not user:
+        flash("User not found", "error")
+        return redirect('/login')
+
+    # Handle password update
+    if request.method == 'POST':
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+
+        if not old_password or not new_password:
+            flash("Please fill all password fields", "error")
+            return redirect('/profile')
+
+        if not user.check_password(old_password):
+            flash("Old password is incorrect", "error")
+            return redirect('/profile')
+
+        # Update password
+        user.set_password(new_password)
+        db.session.commit()
+        flash("Password updated successfully", "success")
+        return redirect('/profile')
+
+    # --- Dashboard Stats for profile page ---
+    total_uploads = len(cumulative_predictions)       # Total files/predictions uploaded
+    total_predictions = len(cumulative_predictions)  # Total predictions
+    normal_count = sum(1 for p in cumulative_predictions if p['class_name'] == 'BENIGN')
+    total_attacks = total_predictions - normal_count
+
+    return render_template(
+        'profile.html',
+        user=user,
+        total_uploads=total_uploads,
+        total_predictions=total_predictions,
+        total_attacks=total_attacks
+    )
 
 if __name__=='__main__':
     app.run(debug=True)

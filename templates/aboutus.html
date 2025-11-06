@@ -1,0 +1,121 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+    <title>About Us - Anomaly-Based Network Intrusion Detection System </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock head %}
+
+{% block content %}
+<section class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-16 px-6">
+    <div class="max-w-6xl mx-auto text-center">
+        <h1 class="text-5xl font-extrabold mb-6 text-blue-400">About Our Project</h1>
+        <p class="text-lg text-gray-300 leading-relaxed mb-10 max-w-4xl mx-auto">
+            <strong>Anomaly-Based Network Intrusion Detection System Using Ensemble Machine Learning</strong> is a Machine Learning-powered 
+            solution designed to detect malicious network activities by identifying unusual traffic patterns. 
+            Using the <span class="text-blue-400 font-semibold">CICIDS2017 dataset</span>, our system learns to classify 
+            both normal and attack behaviors, helping strengthen network defenses against cyber threats.
+        </p>
+    </div>
+
+    <!-- Project Objective and Tools -->
+    <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 mt-12">
+        <div class="bg-gray-800/70 p-8 rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300">
+            <h2 class="text-3xl font-semibold text-blue-400 mb-4">🎯 Project Objective</h2>
+            <p class="text-gray-300 leading-relaxed">
+                The main objective of this project is to develop an anomaly-based network intrusion detection 
+                system that can accurately identify malicious network activities by leveraging the power of ensemble 
+                machine learning techniques. The system aims to enhance the detection accuracy, minimize false positives, 
+                and adapt effectively to evolving cyber threats. 
+                By integrating multiple machine learning algorithms such as Random Forest, Cat Boosting, Decision Tree, KNN, and Logistic Regression, 
+                the project seeks to combine the strengths of individual models to achieve a more robust and reliable
+                 intrusion detection framework.
+
+Additionally, the project aims to:
+
+Analyze the CICIDS2017 dataset to extract meaningful features for distinguishing normal and attack traffic.
+
+Build and evaluate ensemble-based models capable of detecting various network intrusions in real time.
+
+Provide a user-friendly web dashboard to visualize detection results and performance metrics.
+
+Contribute to the field of cybersecurity by proposing a scalable and efficient approach to network threat detection using machine learning.
+            </p>
+        </div>
+
+        <div class="bg-gray-800/70 p-8 rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300">
+            <h2 class="text-3xl font-semibold text-blue-400 mb-4">🧠 Technologies & Tools</h2>
+            <ul class="list-disc list-inside text-gray-300 space-y-1">
+                <li>Python (Flask Framework)</li>
+                <li>Machine Learning: Scikit-learn, Pandas, NumPy</li>
+                <li>Dataset: CICIDS2017</li>
+                <li>Frontend: HTML, Tailwind CSS, JavaScript</li>
+                <li>Visualization: Matplotlib, Seaborn</li>
+            </ul>
+        </div>
+    </div>
+
+   <!-- Team Section -->
+<div class="max-w-6xl mx-auto mt-20 text-center">
+  <h2 class="text-4xl font-semibold text-blue-400 mb-10">👨‍💻 Project Team</h2>
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
+    <!-- Rosan Shrestha -->
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
+      <h3 class="text-2xl font-bold text-blue-300 mb-2">Rosan Shrestha</h3>
+      <p class="text-gray-400 mb-1">Roll No: 210144</p>
+      <p class="text-gray-300 italic">Machine Learning & Data Analysis Lead</p>
+      <p class="text-sm text-gray-400 mt-3">
+        Responsible for developing ensemble machine learning models, data preprocessing,
+        and visualization using the CICIDS2017 dataset for accurate intrusion detection.
+      </p>
+    </div>
+
+    <!-- Saurav Sijapati -->
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
+      <h3 class="text-2xl font-bold text-blue-300 mb-2">Saurav Sijapati</h3>
+      <p class="text-gray-400 mb-1">Roll No: 210129</p>
+      <p class="text-gray-300 italic">Backend Developer</p>
+      <p class="text-sm text-gray-400 mt-3">
+        In charge of building and maintaining the backend system, developing APIs,
+        managing database integration, and connecting machine learning models for real-time detection.
+      </p>
+    </div>
+
+    <!-- Alisha Malla -->
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
+      <h3 class="text-2xl font-bold text-blue-300 mb-2">Alisha Malla</h3>
+      <p class="text-gray-400 mb-1">Roll No: 210137</p>
+      <p class="text-gray-300 italic">UI/UX Designer</p>
+      <p class="text-sm text-gray-400 mt-3">
+        Designed the overall user interface and experience for the system, ensuring
+        a clean, user-friendly, and visually appealing layout across all pages and dashboards.
+      </p>
+    </div>
+
+    <!-- Netrahari Pahadi -->
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
+      <h3 class="text-2xl font-bold text-blue-300 mb-2">Netrahari Pahadi</h3>
+      <p class="text-gray-400 mb-1">Roll No: 210119</p>
+      <p class="text-gray-300 italic">Frontend Developer</p>
+      <p class="text-sm text-gray-400 mt-3">
+        Responsible for developing the interactive frontend using HTML, CSS, and JavaScript,
+        integrating real-time prediction results and ensuring responsive design across devices.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Supervisor Section -->
+  <div class="mt-16">
+    <h3 class="text-2xl font-semibold text-blue-400 mb-2">Supervisor</h3>
+    <p class="text-gray-300">XYZ<br>Department of ICT, Cosmos College of Management and Technology</p>
+  </div>
+</div>
+
+</section>
+<!-- Include Footer -->
+{% include 'includes/footer.html' %}
+
+{% endblock content %}
+
