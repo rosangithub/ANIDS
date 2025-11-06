@@ -1,0 +1,63 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+<title>Profile - Network IDS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+
+    <!-- Profile Header -->
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <div class="profile-info">
+                <h2>Name: {{ user.name }}</h2>
+                <p>Email: {{ user.email }}</p>
+            </div>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Stats Section -->
+        <div class="profile-stats">
+            <div class="stat-card blue">
+                <h3>Total Uploads</h3>
+                <p>{{ total_uploads }}</p>
+            </div>
+            <div class="stat-card green">
+                <h3>Total Predictions</h3>
+                <p>{{ total_predictions }}</p>
+            </div>
+            <div class="stat-card red">
+                <h3>Detected Attacks</h3>
+                <p>{{ total_attacks }}</p>
+            </div>
+        </div>
+
+        <!-- Change Password Section -->
+        <div class="change-password">
+            <h3>Change Password</h3>
+            <form method="POST" action="/profile">
+                <label for="old_password">Old Password</label>
+                <input type="password" name="old_password" id="old_password" required>
+                <br>
+
+                <label for="new_password">New Password</label>
+                <input type="password" name="new_password" id="new_password" required>
+
+                <button type="submit">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

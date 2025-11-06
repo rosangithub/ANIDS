@@ -1,9 +1,9 @@
 /* -------------------------------
    UTILITY
 --------------------------------*/
-[x-cloak] {
+/* [x-cloak] {
     display: none !important;
-}
+} */
 
 /* -------------------------------
    ROOT VARIABLES
@@ -61,10 +61,10 @@ h2 {
     line-height: 2rem;
     margin-bottom: 0.75rem;
 }
-
+/* 
 .font1 {
     font-family: var(--font1);
-}
+} */
 
 /* -------------------------------
    BUTTONS
@@ -197,7 +197,7 @@ label[for="id_remember"] {
 input[name="remember"] {
     width: auto;
 }
-
+/* 
 #id_tags {
     padding-top: 0.5rem;
 }
@@ -221,7 +221,7 @@ input[name="remember"] {
 #id_tags div label input {
     width: auto;
     margin-right: 5px;
-}
+} */
 
 .full-width {
     grid-column: 1 / -1;
@@ -238,7 +238,7 @@ input[name="remember"] {
 /* -------------------------------
    UPLOAD FORM CONTAINER
 --------------------------------*/
-.form-container {
+/* .form-container {
     max-width: 900px;
     margin: auto;
     padding: 2rem;
@@ -251,7 +251,7 @@ input[name="remember"] {
 .form-container h2 {
     text-align: center;
     margin-bottom: 20px;
-}
+} */
 
 /* -------------------------------
    PREDICTION TABLE
@@ -437,4 +437,161 @@ table tbody tr:hover {
 .landing-feature-card p {
     font-size: 0.95rem;
     color: #ccc;
+}
+
+
+/* --- Global Styles --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f0f4f8;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+/* --- Container --- */
+.profile-page {
+    max-width: 1000px;
+    margin: 50px auto;
+    padding: 0 20px;
+}
+
+/* --- Profile Card --- */
+.profile-card {
+    background: #fff;
+    border-radius: 15px;
+    padding: 30px;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* --- Header --- */
+.profile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 20px;
+    margin-bottom: 25px;
+}
+
+
+.profile-info h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+
+}
+
+
+
+/* --- Logout Button --- */
+.btn-logout {
+    background: #e63946;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+.btn-logout:hover {
+    background: #c92a2a;
+}
+
+/* --- Flash Messages --- */
+.flash-message {
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 500;
+}
+.flash-message.success { background: #c8e6c9; color: #256029; }
+.flash-message.error { background: #ffcdd2; color: #b71c1c; }
+
+/* --- Stats Section --- */
+.profile-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.stat-card {
+    flex: 1;
+    background: #f5f5f5;
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    transition: transform 0.3s;
+}
+.stat-card h3 {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 10px;
+}
+.stat-card p {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+.stat-card.green { border-top: 4px solid #27ae60; }
+.stat-card.red { border-top: 4px solid #e74c3c; }
+.stat-card.blue { border-top: 4px solid #2980b9; }
+.stat-card:hover { transform: translateY(-5px); }
+
+/* --- Change Password Section --- */
+.change-password {
+    background: #f9f9f9;
+    padding: 25px;
+    border-radius: 12px;
+}
+.change-password h3 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+.change-password label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: 500;
+}
+.change-password input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+    font-size: 15px;
+}
+.change-password button {
+    width: 100%;
+    padding: 12px;
+    background: #4b6cb7;
+    color: white;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.change-password button:hover {
+    background: #182848;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .profile-card-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .btn-logout {
+        margin-top: 15px;
+    }
+    .profile-stats {
+        flex-direction: column;
+        gap: 15px;
+    }
 }

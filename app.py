@@ -88,6 +88,12 @@ def allowed_file(filename):
 with app.app_context():
     # db.drop_all()
     db.create_all()
+@app.context_processor
+def inject_user():
+    if 'email' in session:
+        user = User.query.filter_by(email=session['email']).first()
+        return dict(user=user)
+    return dict(user=None)
 
 
 @app.route('/')
@@ -152,9 +158,12 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     global cumulative_predictions
-
+    # user = User.query.filter_by(email=session['email']).first()
+    
+    
     if not cumulative_predictions:
         return render_template('dashboard.html',
+                               user=user,
                                total_predictions=0,
                                attack_count=0,
                                normal_count=0,
@@ -526,6 +535,9 @@ def about():
     return render_template('aboutus.html')
 
 
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    global cumulative_predictions
     if 'email' not in session:
         flash("Please login to view profile", "error")
         return redirect('/login')
@@ -551,6 +563,7 @@ def about():
 
         # Update password
         user.set_password(new_password)
+
         db.session.commit()
         flash("Password updated successfully", "success")
         return redirect('/profile')
