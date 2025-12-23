@@ -158,7 +158,7 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     global cumulative_predictions
-    # user = User.query.filter_by(email=session['email']).first()
+    user = User.query.filter_by(email=session['email']).first()
     
     
     if not cumulative_predictions:
