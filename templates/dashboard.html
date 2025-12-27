@@ -2,12 +2,304 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #e2e8f0;
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        animation: fadeIn 0.8s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 40px;
+        background: linear-gradient(135deg, #60a5fa, #a78bfa, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(96, 165, 250, 0.3);
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+        from { filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.4)); }
+        to { filter: drop-shadow(0 0 20px rgba(167, 139, 250, 0.6)); }
+    }
+
+    /* Stats Section */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin-bottom: 50px;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        animation: slideUp 0.6s ease-out backwards;
+    }
+
+    .stat-box:nth-child(1) { animation-delay: 0.1s; }
+    .stat-box:nth-child(2) { animation-delay: 0.2s; }
+    .stat-box:nth-child(3) { animation-delay: 0.3s; }
+    .stat-box:nth-child(4) { animation-delay: 0.4s; }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .stat-box:hover {
+        transform: translateY(-10px) scale(1.02);
+        border-color: rgba(96, 165, 250, 0.5);
+        box-shadow: 0 20px 40px rgba(96, 165, 250, 0.2),
+                    0 0 0 1px rgba(96, 165, 250, 0.1);
+    }
+
+    .stat-box:hover::before {
+        left: 100%;
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #60a5fa, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        animation: countUp 1s ease-out;
+    }
+
+    @keyframes countUp {
+        from { opacity: 0; transform: scale(0.5); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .stat-label {
+        font-size: 1rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 500;
+    }
+
+    /* Charts Section */
+    .charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        gap: 30px;
+        margin-bottom: 50px;
+    }
+
+    .chart-container {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInScale 0.8s ease-out backwards;
+    }
+
+    .chart-container:nth-child(1) { animation-delay: 0.2s; }
+    .chart-container:nth-child(2) { animation-delay: 0.4s; }
+    .chart-container:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes fadeInScale {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .chart-container::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(96, 165, 250, 0.1) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.5s;
+    }
+
+    .chart-container:hover {
+        transform: translateY(-5px);
+        border-color: rgba(96, 165, 250, 0.4);
+        box-shadow: 0 15px 35px rgba(96, 165, 250, 0.15);
+    }
+
+    .chart-container:hover::after {
+        opacity: 1;
+    }
+
+    .chart-container h2 {
+        font-size: 1.4rem;
+        margin-bottom: 25px;
+        color: #f1f5f9;
+        position: relative;
+        padding-left: 15px;
+    }
+
+    .chart-container h2::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 24px;
+        background: linear-gradient(180deg, #60a5fa, #a78bfa);
+        border-radius: 2px;
+    }
+
+    canvas {
+        animation: chartFade 1s ease-in;
+    }
+
+    @keyframes chartFade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* Actions Section */
+    .actions {
+        display: flex;
+        justify-content: center;
+        gap: 25px;
+        flex-wrap: wrap;
+        animation: slideUp 0.8s ease-out 0.6s backwards;
+    }
+
+    .button {
+        padding: 16px 40px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .button:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+
+    .button:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .button:active {
+        transform: translateY(-1px) scale(1.02);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 2rem;
+        }
+
+        .stats {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+        }
+
+        .charts {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+            padding: 20px;
+        }
+
+        .button {
+            padding: 14px 30px;
+            font-size: 1rem;
+        }
+    }
+
+    /* Loading Animation */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .loading {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+</style>
 {% endblock head %}
 
 {% block content %}
 
 <div class="container">
-    <h1>Network Intrusion Detection Dashboard </h1>
+    <h1 class="text-4xl font-bold mb-8 text-center">🛡️ Network Intrusion Detection Dashboard</h1>
 
     <!-- === Summary Stats === -->
     <div class="stats">
@@ -17,7 +309,7 @@
         </div>
         <div class="stat-box">
             <div class="stat-number">{{ attack_count }}</div>
-            <div class="stat-label">Total Attacks Detected</div>
+            <div class="stat-label">Attacks Detected</div>
         </div>
         <div class="stat-box">
             <div class="stat-number">{{ normal_count }}</div>
@@ -36,42 +328,32 @@
     </div>
 
     <!-- === Charts Section === -->
-      {% if attack_counts %}
+    {% if attack_counts %}
     <div class="charts">
         <!-- Chart 1: Attack Type Distribution -->
-       
         <div class="chart-container">
-            <h2>Attack Type Distribution </h2>
+            <h2>Attack Type Distribution</h2>
             <canvas id="attackChart"></canvas>
         </div>
-        
 
         <!-- Chart 2: Normal vs Attack Summary -->
         <div class="chart-container">
-            <h2>Normal vs Attack Summary </h2>
+            <h2>Normal vs Attack Summary</h2>
             <canvas id="summaryChart"></canvas>
         </div>
 
         <!-- Chart 3: All Categories Pie Chart -->
-       
         <div class="chart-container">
-            <h2>All Traffic Categories </h2>
+            <h2>All Traffic Categories</h2>
             <canvas id="categoryChart"></canvas>
         </div>
-       
-        <!-- Chart 4: Prediction Trend Line Chart -->
-       
-        <div class="chart-container">
-            <h2>Prediction Trend </h2>
-            <canvas id="trendChart"></canvas>
-        </div>
-        {% endif %}
     </div>
+    {% endif %}
 
     <!-- === Buttons === -->
     <div class="actions">
-        <button class="button" onclick="window.location.href='/upload';">Upload New Data</button>
-        <button class="button" onclick="window.location.href='/download_report';">Download Report</button>
+        <button class="button" onclick="window.location.href='/upload';">📤 Upload New Data</button>
+        <button class="button" onclick="window.location.href='/download_report';">📊 Download Report</button>
     </div>
 </div>
 
@@ -85,6 +367,10 @@
     const normalCount = {{ normal_count }};
     const attackCount = {{ attack_count }};
 
+    // Chart defaults for smooth animations
+    Chart.defaults.animation.duration = 2000;
+    Chart.defaults.animation.easing = 'easeInOutQuart';
+
     // === Chart 1: Attack Type Distribution ===
     new Chart(document.getElementById('attackChart'), {
         type: 'bar',
@@ -94,18 +380,52 @@
                 label: 'Attack Count',
                 data: attackData,
                 backgroundColor: [
+                    'rgba(34, 211, 238, 0.8)',
+                    'rgba(96, 165, 250, 0.8)',
+                    'rgba(167, 139, 250, 0.8)',
+                    'rgba(248, 113, 113, 0.8)',
+                    'rgba(250, 204, 21, 0.8)',
+                    'rgba(74, 222, 128, 0.8)',
+                    'rgba(244, 114, 182, 0.8)',
+                    'rgba(148, 163, 184, 0.8)',
+                    'rgba(251, 146, 60, 0.8)',
+                    'rgba(52, 211, 153, 0.8)'
+                ],
+                borderColor: [
                     '#22d3ee', '#60a5fa', '#a78bfa', '#f87171', '#facc15',
                     '#4ade80', '#f472b6', '#94a3b8', '#fb923c', '#34d399'
-                ]
+                ],
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 12,
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(96, 165, 250, 0.5)',
+                    borderWidth: 1
+                }
             },
             scales: {
-                x: { ticks: { color: '#cbd5e1' } },
-                y: { ticks: { color: '#cbd5e1' } }
+                x: { 
+                    ticks: { color: '#cbd5e1', font: { size: 11 } },
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                },
+                y: { 
+                    ticks: { color: '#cbd5e1', font: { size: 11 } },
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                }
+            },
+            animation: {
+                delay: (context) => context.dataIndex * 100
             }
         }
     });
@@ -118,22 +438,44 @@
             datasets: [{
                 label: 'Record Count',
                 data: [normalCount, attackCount],
-                backgroundColor: ['#10b981', '#ef4444']
+                backgroundColor: [
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ],
+                borderColor: ['#10b981', '#ef4444'],
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: true,
             plugins: {
-                
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 12,
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(96, 165, 250, 0.5)',
+                    borderWidth: 1
+                }
             },
             scales: {
-                x: { ticks: { color: '#cbd5e1' } },
-                y: { ticks: { color: '#cbd5e1' } }
+                x: { 
+                    ticks: { color: '#cbd5e1', font: { size: 12, weight: 'bold' } },
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                },
+                y: { 
+                    ticks: { color: '#cbd5e1', font: { size: 11 } },
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                }
             }
         }
     });
 
-    // === Chart 3: All Categories Pie Chart ===
+    // === Chart 3: All Categories Doughnut Chart ===
     new Chart(document.getElementById('categoryChart'), {
         type: 'doughnut',
         data: {
@@ -142,47 +484,50 @@
                 label: 'Traffic Distribution',
                 data: attackData,
                 backgroundColor: [
-                    '#34d399', '#f87171', '#60a5fa', '#facc15', '#a78bfa',
-                    '#4ade80', '#fb7185', '#c084fc', '#38bdf8', '#fbbf24'
+                    'rgba(52, 211, 153, 0.8)',
+                    'rgba(248, 113, 113, 0.8)',
+                    'rgba(96, 165, 250, 0.8)',
+                    'rgba(250, 204, 21, 0.8)',
+                    'rgba(167, 139, 250, 0.8)',
+                    'rgba(74, 222, 128, 0.8)',
+                    'rgba(251, 113, 133, 0.8)',
+                    'rgba(192, 132, 252, 0.8)',
+                    'rgba(56, 189, 248, 0.8)',
+                    'rgba(251, 191, 36, 0.8)'
                 ],
-                hoverOffset: 8
+                borderColor: '#0f172a',
+                borderWidth: 3,
+                hoverOffset: 15,
+                hoverBorderColor: '#fff',
+                hoverBorderWidth: 3
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: true,
             plugins: {
-                title: { display: true, text: 'All Traffic Categories', color: '#f8fafc' },
-                legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
-            }
-        }
-    });
-
-    // === Chart 4: Prediction Trend Line Chart ===
-    // Fake trend data (if you have timestamps, replace this part in Flask)
-    const trendLabels = Array.from({length: attackData.length}, (_, i) => "Batch " + (i + 1));
-    const trendData = attackData.map((v, i) => v + Math.floor(Math.random() * 10)); // simulate change
-
-    new Chart(document.getElementById('trendChart'), {
-        type: 'line',
-        data: {
-            labels: trendLabels,
-            datasets: [{
-                label: 'Prediction Trend',
-                data: trendData,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: '#1e3a8a'
-            }]
-        },
-        options: {
-            plugins: {
-            
-                legend: { labels: { color: '#e2e8f0' } }
+                legend: { 
+                    position: 'bottom',
+                    labels: { 
+                        color: '#e2e8f0',
+                        padding: 15,
+                        font: { size: 11 },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 12,
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(96, 165, 250, 0.5)',
+                    borderWidth: 1
+                }
             },
-            scales: {
-                x: { ticks: { color: '#cbd5e1' } },
-                y: { ticks: { color: '#cbd5e1' } }
+            animation: {
+                animateRotate: true,
+                animateScale: true
             }
         }
     });

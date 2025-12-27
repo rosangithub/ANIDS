@@ -1,0 +1,88 @@
+{% extends 'reallayout.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock head %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4 text-center">🔴 Real-Time Network Intrusion Detection</h1>
+    <p class="text-center mb-4">Monitoring live packets and detecting anomalies in real-time</p>
+
+    <div class="row mb-4 text-center">
+        <div class="col">
+            <div class="card p-3"><h6>Total Packets</h6><h4>{{ total_predictions }}</h4></div>
+        </div>
+        <div class="col">
+            <div class="card p-3"><h6>Benign</h6><h4>{{ normal_count }}</h4></div>
+        </div>
+        <div class="col">
+            <div class="card p-3"><h6>Attacks Detected</h6><h4>{{ attack_count }}</h4></div>
+        </div>
+        <div class="col">
+            <div class="card p-3"><h6>Accuracy</h6><h4>{{ accuracy }}%</h4></div>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-4">
+        <h5 class="mb-3">📡 Live Packet Detection Feed</h5>
+        <div id="live-results"
+             hx-get="/realtime_data"
+             hx-trigger="load, every 5s"
+             hx-swap="innerHTML transition:true"
+             class="table-responsive">
+            <p class="text-center text-muted">Waiting for live data...</p>
+        </div>
+    </div>
+
+    {% if attack_counts %}
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card p-3">
+                <h6 class="text-center mb-2">Attack Type Distribution</h6>
+                <canvas id="attackChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card p-3">
+                <h6 class="text-center mb-2">Normal vs Attack Summary</h6>
+                <canvas id="summaryChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="text-center mb-4">
+    <button class="btn btn-primary" hx-post="/start_detection" hx-swap="none" hx-trigger="click">🚀 Start Packet Capture</button>
+</div>
+
+{% if attack_counts %}
+<script>
+    const attackLabels = {{ attack_counts.keys()|list|safe }};
+    const attackData = {{ attack_counts.values()|list|safe }};
+    const normalCount = {{ normal_count }};
+    const attackCount = {{ attack_count }};
+
+    new Chart(document.getElementById('attackChart'), {
+        type: 'bar',
+        data: {
+            labels: attackLabels,
+            datasets: [{ label: 'Detected Count', data: attackData }]
+        },
+        options: { plugins:{ legend:{ display:false } }, responsive:true }
+    });
+
+    new Chart(document.getElementById('summaryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['BENIGN','ATTACK'],
+            datasets: [{ data: [normalCount, attackCount] }]
+        },
+        options: { responsive:true }
+    });
+</script>
+{% endif %}
+{% endblock %}

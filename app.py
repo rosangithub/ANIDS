@@ -8,13 +8,15 @@ import numpy as np
 import pandas as pd
 import os
 import sklearn
+from threading import Thread
 global filename
 import matplotlib
 matplotlib.use('Agg')   # Prevent GUI backend issue
-
+import realtime_detector
 import io
 import base64
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 
 filename=""
@@ -33,6 +35,7 @@ db.init_app(app)
 
 
 app.secret_key = 'secret_key'
+
 
 # from youtube tutorial
 
@@ -84,7 +87,10 @@ def allowed_file(filename):
 #     def check_password(self,password):
 #         return bcrypt.checkpw(password.encode('utf-8'),self.password.encode('utf-8'))
 
-
+BASE_DIR = Path(__file__).parent
+LOG_FILE = realtime_detector.LOG_FILE  # path to realtime.csv
+# Optional: set label column constant
+LABEL_COL = "label"
 with app.app_context():
     # db.drop_all()
     db.create_all()
@@ -582,5 +588,111 @@ def profile():
         total_attacks=total_attacks
     )
 
+#start packet capturing
+realtime_detector.start_capture_thread()
+
+
+@app.route('/realtime_dashboard')
+def realtime_dashboard():
+    # Provide summary stats to template (initial render)
+    if os.path.exists(LOG_FILE):
+        try:
+            df = pd.read_csv(LOG_FILE)
+        except Exception as e:
+            print("Error reading log:", e)
+            df = pd.DataFrame()
+
+        total = len(df)
+        if LABEL_COL in df.columns:
+            normal = int((df[LABEL_COL] == 'BENIGN').sum())
+            attack = total - normal
+            attack_counts = df[LABEL_COL].value_counts().to_dict()
+        else:
+            normal = 0
+            attack = 0
+            attack_counts = {}
+        accuracy = round((normal / total) * 100, 2) if total > 0 else 0
+    else:
+        total = normal = attack = accuracy = 0
+        attack_counts = {}
+
+    return render_template("realtime_dashboard.html",
+                           total_predictions=total,
+                           normal_count=normal,
+                           attack_count=attack,
+                           accuracy=accuracy,
+                           attack_counts=attack_counts)
+
+@app.route('/realtime_data')
+def realtime_data():
+    """
+    Returns an HTML fragment (table) showing the most recent detection rows.
+    HTMX will load this into the dashboard.
+    """
+    rows_html = []
+    if os.path.exists(LOG_FILE):
+        try:
+            df = pd.read_csv(LOG_FILE)
+        except Exception as e:
+            print("Failed to read log:", e)
+            df = pd.DataFrame()
+
+        # Use last 50 rows for live feed
+        tail = df.tail(50).copy()
+        # Normalize column names to expected keys
+        cols = [c.lower().strip() for c in tail.columns.tolist()]
+        tail.columns = cols
+
+        # build rows
+        for _, row in tail[::-1].iterrows():  # reversed: newest first
+            ts = row.get("timestamp", "")
+            label = row.get("label", "Unknown")
+            port = row.get("destination_port", "") or row.get("port", "")
+            avglen = row.get("avg_fwd_packet_len", "") or row.get("avglen", "")
+            dur = row.get("flow_duration", "")
+
+            color = "text-success" if str(label).upper() == "BENIGN" else "text-danger"
+            row_html = f"""
+            <tr>
+                <td>{ts}</td>
+                <td class="{color}">{label}</td>
+                <td>{port}</td>
+                <td>{avglen}</td>
+                <td>{dur}</td>
+            </tr>
+            """
+            rows_html.append(row_html)
+    else:
+        rows_html.append("<tr><td colspan='5' class='text-center'>No data yet</td></tr>")
+
+    table_html = f"""
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Label</th>
+                <th>Destination Port</th>
+                <th>Avg Fwd Len</th>
+                <th>Flow Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {''.join(rows_html)}
+        </tbody>
+    </table>
+    """
+    return table_html
+
+@app.route('/start_detection', methods=['POST'])
+def start_detection():
+    started = realtime_detector.start_capture_thread()
+    if started:
+        return ("", 204)
+    else:
+        return ("Already running", 200)
+    
+
+
+    
 if __name__=='__main__':
     app.run(debug=True)
