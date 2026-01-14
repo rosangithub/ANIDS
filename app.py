@@ -1,3 +1,5 @@
+import logging
+from pyexpat import model
 from flask import Flask, request,render_template, redirect,session,Response,flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
@@ -7,26 +9,50 @@ import joblib
 import numpy as np
 import pandas as pd
 import os
+import time
 import sklearn
 from threading import Thread
 global filename
 import matplotlib
 matplotlib.use('Agg')   # Prevent GUI backend issue
-import realtime_detector
+import flow_engine
 import io
 import base64
 import matplotlib.pyplot as plt
 from pathlib import Path
 import re
+import threading
+from datetime import datetime 
+from flask_socketio import SocketIO
+
+from flow_engine import FlowEngine
+from scapy.all import sniff
+from scapy.layers.inet import IP, TCP, UDP
 
 
 filename=""
 
 
+
+# -------------------
+# Config
+# -------------------
+INTERFACE = None   # set e.g. "eth0" / "wlan0" / "Ethernet" if needed
+FLOW_TIMEOUT = 5.0
+INACTIVE_TIMEOUT = 3.0
+EXPIRE_CHECK_INTERVAL = 1.0
+
+MODEL_PATH = "model/StackingEnsemble.joblib"
+ENCODER_PATH = "model/label_encoder.pkl"
+FEATURES_PATH = "model/feature_order.joblib"
 app = Flask(__name__)
 
-#load the model
-# model = joblib.load('model/StackingEnsemble.joblib')
+# -------------------
+# Load model assets
+# -------------------
+loaded_model = joblib.load(MODEL_PATH)
+label_encoder = joblib.load(ENCODER_PATH)
+feature_order = joblib.load(FEATURES_PATH)
 #configure your database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -34,6 +60,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Bind the SQLAlchemy object to your Flask app
 db.init_app(app)
 app.secret_key = 'secret_key'
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
 
 # from youtube tutorial
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -84,8 +112,6 @@ def allowed_file(filename):
 #     def check_password(self,password):
 #         return bcrypt.checkpw(password.encode('utf-8'),self.password.encode('utf-8'))
 
-BASE_DIR = Path(__file__).parent
-LOG_FILE = realtime_detector.LOG_FILE  # path to realtime.csv
 # Optional: set label column constant
 LABEL_COL = "label"
 with app.app_context():
@@ -344,9 +370,9 @@ def dashboard():
 def logout():
     session.pop('email',None)
     return redirect('/login')
-# Load the trained model
-model_filename='model/StackingEnsemble.joblib'
-loaded_model = joblib.load(model_filename)
+# # Load the trained model
+# model_filename='model/StackingEnsemble.joblib'
+# loaded_model = joblib.load(model_filename)
 
 # print(loaded_model.feature_names_in_)
 #Reverse mapping dictionary to decode predicted class
@@ -370,28 +396,28 @@ class_mapping_reverse={
 
 
 # List of features in the exact order
-feature_order=[
-   'Fwd Packet Length Max',
- 'Fwd Packet Length Mean',
- 'Bwd Packets/s',
- 'Total Length of Fwd Packets',
- 'Subflow Fwd Bytes',
- 'Flow Packets/s',
- 'Packet Length Std',
- 'Flow IAT Mean',
- 'Avg Fwd Segment Size',
- 'Flow IAT Max',
- 'Init_Win_bytes_backward',
- 'Avg Bwd Segment Size',
- 'Bwd Packet Length Mean',
- 'Flow Duration',
- 'Bwd Packet Length Std',
- 'Bwd Packet Length Max',
- 'Subflow Bwd Bytes',
- 'Total Length of Bwd Packets',
- 'Destination Port',
- 'Packet Length Variance'
-]
+# feature_order=[
+#    'Fwd Packet Length Max',
+#  'Fwd Packet Length Mean',
+#  'Bwd Packets/s',
+#  'Total Length of Fwd Packets',
+#  'Subflow Fwd Bytes',
+#  'Flow Packets/s',
+#  'Packet Length Std',
+#  'Flow IAT Mean',
+#  'Avg Fwd Segment Size',
+#  'Flow IAT Max',
+#  'Init_Win_bytes_backward',
+#  'Avg Bwd Segment Size',
+#  'Bwd Packet Length Mean',
+#  'Flow Duration',
+#  'Bwd Packet Length Std',
+#  'Bwd Packet Length Max',
+#  'Subflow Bwd Bytes',
+#  'Total Length of Bwd Packets',
+#  'Destination Port',
+#  'Packet Length Variance'
+# ]
 # def preprocess_input(user_input):
 #     #convert input to the appropriate data types
 #     for column in feature_order:
@@ -650,108 +676,217 @@ def profile():
         total_attacks=total_attacks
     )
 
-# #start packet capturing
-# realtime_detector.start_capture_thread()
+
+# -------------------
+# Flow engine
+# -------------------
+engine = FlowEngine(flow_timeout_sec=FLOW_TIMEOUT, inactive_timeout_sec=INACTIVE_TIMEOUT)
 
 
-# @app.route('/realtime_dashboard')
-# def realtime_dashboard():
-#     # Provide summary stats to template (initial render)
-#     if os.path.exists(LOG_FILE):
-#         try:
-#             df = pd.read_csv(LOG_FILE)
-#         except Exception as e:
-#             print("Error reading log:", e)
-#             df = pd.DataFrame()
+# Keep small history for initial load
+RECENT_FLOW_LIMIT = 150
+RECENT_PKT_LIMIT = 200
 
-#         total = len(df)
-#         if LABEL_COL in df.columns:
-#             normal = int((df[LABEL_COL] == 'BENIGN').sum())
-#             attack = total - normal
-#             attack_counts = df[LABEL_COL].value_counts().to_dict()
-#         else:
-#             normal = 0
-#             attack = 0
-#             attack_counts = {}
-#         accuracy = round((normal / total) * 100, 2) if total > 0 else 0
-#     else:
-#         total = normal = attack = accuracy = 0
-#         attack_counts = {}
+recent_flows = []
+recent_pkts = []
 
-#     return render_template("realtime_dashboard.html",
-#                            total_predictions=total,
-#                            normal_count=normal,
-#                            attack_count=attack,
-#                            accuracy=accuracy,
-#                            attack_counts=attack_counts)
+def push_flow(evt):
+    recent_flows.append(evt)
+    if len(recent_flows) > RECENT_FLOW_LIMIT:
+        del recent_flows[0:len(recent_flows)-RECENT_FLOW_LIMIT]
 
-# @app.route('/realtime_data')
-# def realtime_data():
-#     """
-#     Returns an HTML fragment (table) showing the most recent detection rows.
-#     HTMX will load this into the dashboard.
-#     """
-#     rows_html = []
-#     if os.path.exists(LOG_FILE):
-#         try:
-#             df = pd.read_csv(LOG_FILE)
-#         except Exception as e:
-#             print("Failed to read log:", e)
-#             df = pd.DataFrame()
+def push_pkt(evt):
+    recent_pkts.append(evt)
+    if len(recent_pkts) > RECENT_PKT_LIMIT:
+        del recent_pkts[0:len(recent_pkts)-RECENT_PKT_LIMIT]
 
-#         # Use last 50 rows for live feed
-#         tail = df.tail(50).copy()
-#         # Normalize column names to expected keys
-#         cols = [c.lower().strip() for c in tail.columns.tolist()]
-#         tail.columns = cols
+def predict_flow(features: dict):
+    X = pd.DataFrame([features], columns=feature_order)
+    pred_class = loaded_model.predict(X)[0]
+    label = label_encoder.inverse_transform([pred_class])[0]
 
-#         # build rows
-#         for _, row in tail[::-1].iterrows():  # reversed: newest first
-#             ts = row.get("timestamp", "")
-#             label = row.get("label", "Unknown")
-#             port = row.get("destination_port", "") or row.get("port", "")
-#             avglen = row.get("avg_fwd_packet_len", "") or row.get("avglen", "")
-#             dur = row.get("flow_duration", "")
+    confidence = None
+    if hasattr(loaded_model, "predict_proba"):
+        proba = loaded_model.predict_proba(X)[0]
+        confidence = float(np.max(proba))
+    return label, confidence
 
-#             color = "text-success" if str(label).upper() == "BENIGN" else "text-danger"
-#             row_html = f"""
-#             <tr>
-#                 <td>{ts}</td>
-#                 <td class="{color}">{label}</td>
-#                 <td>{port}</td>
-#                 <td>{avglen}</td>
-#                 <td>{dur}</td>
-#             </tr>
-#             """
-#             rows_html.append(row_html)
-#     else:
-#         rows_html.append("<tr><td colspan='5' class='text-center'>No data yet</td></tr>")
+def packet_sniffer_thread():
+    def on_packet(pkt):
+        # update flows
+        engine.process_packet(pkt)
 
-#     table_html = f"""
-#     <table class="table table-striped">
-#         <thead>
-#             <tr>
-#                 <th>Timestamp</th>
-#                 <th>Label</th>
-#                 <th>Destination Port</th>
-#                 <th>Avg Fwd Len</th>
-#                 <th>Flow Duration</th>
-#             </tr>
-#         </thead>
-#         <tbody>
-#             {''.join(rows_html)}
-#         </tbody>
-#     </table>
-#     """
-#     return table_html
+        # emit RAW packet stream (Wireshark-like)
+        if not pkt.haslayer(IP):
+            return
 
-# @app.route('/start_detection', methods=['POST'])
-# def start_detection():
-#     started = realtime_detector.start_capture_thread()
-#     if started:
-#         return ("", 204)
-#     else:
-#         return ("Already running", 200)
-     
-if __name__=='__main__':
-    app.run(debug=True)
+        ip = pkt[IP]
+        proto = "IP"
+        sport = None
+        dport = None
+        flags = ""
+
+        if pkt.haslayer(TCP):
+            proto = "TCP"
+            sport = int(pkt[TCP].sport)
+            dport = int(pkt[TCP].dport)
+            flags = str(pkt[TCP].flags)
+        elif pkt.haslayer(UDP):
+            proto = "UDP"
+            sport = int(pkt[UDP].sport)
+            dport = int(pkt[UDP].dport)
+
+        evt = {
+            "ts": datetime.now().strftime("%H:%M:%S"),
+            "src": ip.src,
+            "dst": ip.dst,
+            "proto": proto,
+            "sport": sport,
+            "dport": dport,
+            "len": int(getattr(ip, "len", len(pkt))),
+            "flags": flags
+        }
+
+        push_pkt(evt)
+        socketio.emit("packet_event", evt)
+
+    sniff(iface=INTERFACE, prn=on_packet, store=False)
+
+# -------------------
+# Alerting (backend)
+# -------------------
+# Emits a separate Socket.IO event: "alert_event"
+# so the frontend can show a banner/toast, play sound, etc.
+
+ALERT_COOLDOWN_SEC = 1.5  # rate-limit alerts per (src,dst,label) to avoid spam
+_last_alert_time = {}     # dict key -> last_time (epoch seconds)
+
+# Optional: write alerts to console (or file if you configure logging handlers)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ANIDS_ALERTS")
+
+
+def should_emit_alert(evt: dict) -> bool:
+    """
+    Returns True if this event should generate an alert.
+    You can customize this logic later (e.g., confidence threshold, label whitelist).
+    """
+    return evt.get("label") and evt["label"] != "BENIGN"
+
+
+def emit_alert(evt: dict):
+    """
+    Emit alert_event to all clients with a minimal payload.
+    Also rate-limits to avoid alert spam.
+    """
+    now = time.time()
+
+    key = (evt.get("src"), evt.get("dst"), evt.get("label"))
+    last = _last_alert_time.get(key, 0)
+
+    # Rate limit
+    if (now - last) < ALERT_COOLDOWN_SEC:
+        return
+
+    _last_alert_time[key] = now
+
+    alert_payload = {
+        "ts": evt.get("ts"),
+        "label": evt.get("label"),
+        "confidence": evt.get("confidence"),
+        "src": evt.get("src"),
+        "dst": evt.get("dst"),
+        "sport": evt.get("sport"),
+        "dport": evt.get("dport"),
+        "proto": evt.get("proto"),
+        # Optional: include is_attack for convenience
+        "is_attack": True,
+    }
+
+    # Log for future reference
+    logger.warning(
+        "ALERT %s %s:%s -> %s:%s proto=%s conf=%s",
+        alert_payload["label"],
+        alert_payload["src"], alert_payload["sport"],
+        alert_payload["dst"], alert_payload["dport"],
+        alert_payload["proto"],
+        alert_payload["confidence"]
+    )
+
+    # Emit to frontend
+    socketio.emit("alert_event", alert_payload)
+
+def flow_expirer_thread():
+    """
+    Background thread:
+    - Expires flows from FlowEngine
+    - Extracts features
+    - Predicts label + confidence
+    - Emits realtime flow_event to frontend
+    - Emits alert_event to frontend if attack
+    """
+    while True:
+        expired = engine.expire_flows()
+
+        for fs in expired:
+            # Extract model input features for this flow
+            features = engine.extract_top20_features(fs)
+
+            # Predict label + confidence
+            label, confidence = predict_flow(features)
+
+            # Flow key unpack
+            src_ip, dst_ip, sport, dport, proto = fs.flow_key
+            is_attack = (label != "BENIGN")
+
+            # Build event payload for dashboard
+            evt = {
+                "ts": datetime.now().strftime("%H:%M:%S"),
+                "src": src_ip,
+                "dst": dst_ip,
+                "sport": int(sport),
+                "dport": int(dport),
+                "proto": proto,
+
+                "label": label,
+                "is_attack": is_attack,
+                "confidence": None if confidence is None else round(float(confidence), 4),
+
+                # Keep feature values rounded for display
+                "features": {k: round(float(v), 6) for k, v in features.items()},
+            }
+
+            # Save into recent history for initial page load
+            push_flow(evt)
+
+            # Emit flow stream to frontend
+            socketio.emit("flow_event", evt)
+
+            # ✅ Emit alert stream to frontend if attack
+            if should_emit_alert(evt):
+                emit_alert(evt)
+
+        # Friendly sleep (works with SocketIO threading mode too)
+        socketio.sleep(EXPIRE_CHECK_INTERVAL)
+
+@app.route("/realtime_dashboard")
+def realtime_dashboard():
+    return render_template(
+        "realtime_dashboard.html",
+        feature_order=feature_order,
+        init_flows=list(reversed(recent_flows)),
+        init_pkts=list(reversed(recent_pkts)),
+    )
+
+@socketio.on("connect")
+def on_connect():
+    # send history so page loads filled
+    socketio.emit("history", {"flows": recent_flows, "pkts": recent_pkts})
+
+def start_threads():
+    threading.Thread(target=packet_sniffer_thread, daemon=True).start()
+    threading.Thread(target=flow_expirer_thread, daemon=True).start()
+
+if __name__ == "__main__":
+    start_threads()
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)

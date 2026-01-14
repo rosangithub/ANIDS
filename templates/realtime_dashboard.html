@@ -1,88 +1,584 @@
-{% extends 'reallayout.html' %}
+{% extends "layout.html" %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% endblock head %}
+<title>ANIDS | Realtime Dashboard</title>
+
+<style>
+  .wrap { max-width: 1400px; margin: 18px auto; padding: 0 12px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom: 10px; }
+  .title { font-size: 1.6rem; font-weight: 900; margin: 0; color:#e5e7eb; }
+  .subtitle { margin: 4px 0 0; color:#94a3b8; font-weight:700; font-size:.95rem; }
+
+  .pill { display:flex; align-items:center; gap:10px; padding:10px 14px; background: rgba(2,6,23,.55); border:1px solid rgba(148,163,184,.18); border-radius:999px; font-weight:900; color:#e5e7eb; white-space:nowrap; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.16); }
+  .dot.off { background:#f87171; box-shadow:0 0 0 4px rgba(248,113,113,.16); }
+
+  .grid { display:grid; grid-template-columns: 1.15fr 0.85fr; gap: 12px; }
+  @media (max-width: 1100px){ .grid{ grid-template-columns: 1fr; } }
+  .split { display:grid; grid-template-rows: 320px 380px; gap: 12px; }
+  @media (max-width:1100px){ .split{ grid-template-rows: auto; } }
+
+  .card { background: rgba(30,41,59,.92); border: 1px solid rgba(148,163,184,.16); border-radius: 18px; box-shadow: 0 18px 45px rgba(0,0,0,.35); overflow:hidden; min-width:0; }
+  .card-h { padding: 12px 14px; border-bottom:1px solid rgba(148,163,184,.12); display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .card-h h3 { margin:0; font-size: 1rem; font-weight: 900; color:#e5e7eb; }
+  .card-b { padding: 12px 14px; }
+
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .btn { padding:8px 12px; border-radius: 12px; border:1px solid rgba(148,163,184,.18); background: rgba(2,6,23,.55); color:#e5e7eb; font-weight:900; cursor:pointer; }
+  .btn:hover { background: rgba(2,6,23,.72); }
+  .toggle { display:flex; align-items:center; gap:8px; color:#cbd5f5; font-weight:900; user-select:none; }
+  .toggle input { transform: scale(1.15); }
+
+  /* ---------- PERFECT TABLE (header always aligned with body) ---------- */
+  :root{
+    --c-time: 110px;
+    --c-ip:   240px;
+    --c-port: 90px;
+    --c-proto:90px;
+    --c-label:170px;
+    --c-conf: 90px;
+    --c-len:  70px;
+    --c-flag: 140px;
+  }
+
+  .table-wrap{
+    background: rgba(2,6,23,.35);
+    border-radius: 14px;
+    border:1px solid rgba(148,163,184,.12);
+    overflow: hidden; /* important: we scroll tbody, not wrapper */
+  }
+
+  /* we make tbody scroll so thead stays fixed and columns match */
+  table.stream{
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.stream thead, table.stream tbody{
+    display:block;
+  }
+  table.stream thead tr,
+  table.stream tbody tr{
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  /* scroll body */
+  table.stream tbody{
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable both-edges;
+  }
+
+  /* heights per table */
+  .packets table.stream tbody{ max-height: 240px; }
+  .flows   table.stream tbody{ max-height: 320px; }
+
+  table.stream th, table.stream td{
+    box-sizing: border-box;
+    padding: 10px;
+    white-space: nowrap;
+    overflow:hidden;
+    text-overflow: ellipsis;
+  }
+  table.stream thead th{
+    background: rgba(2,6,23,.92);
+    color:#cbd5f5;
+    font-size:.85rem;
+    font-weight: 900;
+    text-align:left;
+    border-bottom:1px solid rgba(148,163,184,.18);
+  }
+  table.stream tbody td{
+    border-bottom:1px solid rgba(148,163,184,.10);
+    font-size:.9rem;
+    color:#e5e7eb;
+  }
+  table.stream tbody tr{ cursor:pointer; }
+  table.stream tbody tr:hover{ background: rgba(148,163,184,.08); }
+
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+  /* column widths via classes on both th and td */
+  .col-time{ width: var(--c-time); }
+  .col-src{  width: var(--c-ip); }
+  .col-dst{  width: var(--c-ip); }
+  .col-sport{width: var(--c-port); }
+  .col-dport{width: var(--c-port); }
+  .col-proto{width: var(--c-proto); }
+  .col-label{width: var(--c-label); }
+  .col-conf{ width: var(--c-conf); text-align:right; }
+  .col-len{  width: var(--c-len); }
+  .col-flag{ width: var(--c-flag); }
+
+  .badge { padding:6px 10px; border-radius:999px; font-weight:900; font-size:.82rem; border:1px solid transparent; }
+  .ok { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.22); color:#86efac; }
+  .bad{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.22); color:#fca5a5; }
+
+  .charts { display:grid; grid-template-columns:1fr; gap:12px; }
+  .chart-wrap{ background: rgba(2,6,23,.35); border:1px solid rgba(148,163,184,.12); border-radius:14px; padding:10px; }
+  canvas { width:100% !important; height: 220px !important; }
+
+  .feature-wrap { max-height: 340px; overflow:auto; background: rgba(2,6,23,.35); border-radius:14px; border:1px solid rgba(148,163,184,.12); }
+  table.feat { width:100%; border-collapse:collapse; }
+  table.feat th, table.feat td { padding:10px; border-bottom:1px solid rgba(148,163,184,.10); }
+  table.feat th{ position:sticky; top:0; background: rgba(2,6,23,.92); color:#cbd5f5; text-align:left; font-weight:900; }
+  table.feat td:last-child { text-align:right; color:#94a3b8; font-weight:900; }
+
+  /* ---------- Alert bar (clean, not ugly) ---------- */
+  .alertbar{
+    display:none;
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(239,68,68,.35);
+    background: rgba(239,68,68,.14);
+    color: #fecaca;
+    font-weight: 900;
+  }
+  .alertbar small{
+    display:block;
+    margin-top: 4px;
+    color:#94a3b8;
+    font-weight: 800;
+  }
+
+  /* flash row on attack */
+  .row-attack-flash{ animation: flashRed 1.1s ease-out 1; }
+  @keyframes flashRed{ 0%{ background: rgba(239,68,68,.22);} 100%{ background: transparent;} }
+
+  .mini-status{ margin-top: 6px; color:#94a3b8; font-weight: 900; font-size: .88rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h1 class="mb-4 text-center">🔴 Real-Time Network Intrusion Detection</h1>
-    <p class="text-center mb-4">Monitoring live packets and detecting anomalies in real-time</p>
-
-    <div class="row mb-4 text-center">
-        <div class="col">
-            <div class="card p-3"><h6>Total Packets</h6><h4>{{ total_predictions }}</h4></div>
-        </div>
-        <div class="col">
-            <div class="card p-3"><h6>Benign</h6><h4>{{ normal_count }}</h4></div>
-        </div>
-        <div class="col">
-            <div class="card p-3"><h6>Attacks Detected</h6><h4>{{ attack_count }}</h4></div>
-        </div>
-        <div class="col">
-            <div class="card p-3"><h6>Accuracy</h6><h4>{{ accuracy }}%</h4></div>
-        </div>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <p class="title">Real-Time ANIDS Dashboard</p>
+      <p class="subtitle">Live packets + flow predictions + real-time charts (no refresh).</p>
+      <div class="mini-status">
+        Alerts: <span id="alertCount">0</span> • Last alert: <span id="lastAlert">—</span>
+      </div>
     </div>
 
-    <div class="card p-3 mb-4">
-        <h5 class="mb-3">📡 Live Packet Detection Feed</h5>
-        <div id="live-results"
-             hx-get="/realtime_data"
-             hx-trigger="load, every 5s"
-             hx-swap="innerHTML transition:true"
-             class="table-responsive">
-            <p class="text-center text-muted">Waiting for live data...</p>
+    <div class="pill">
+      <span id="dot" class="dot"></span>
+      <span id="conn">Connected</span>
+      <span id="counts" style="color:#94a3b8; font-weight:900;"></span>
+    </div>
+  </div>
+
+  <div class="alertbar" id="alertBar">
+    <div id="alertMsg"></div>
+    <small>Attack alert • auto hides • rate-limited</small>
+  </div>
+
+  <div class="grid">
+    <div class="split">
+
+      <!-- PACKETS -->
+      <div class="card">
+        <div class="card-h">
+          <h3>Live Packet Capture (Wireshark Style)</h3>
+          <div class="controls">
+            <button class="btn" id="pausePkts">Pause</button>
+            <button class="btn" id="clearPkts">Clear</button>
+          </div>
         </div>
+
+        <div class="card-b">
+          <div class="table-wrap packets">
+            <table class="stream" id="pktTable">
+              <thead>
+                <tr>
+                  <th class="col-time">Time</th>
+                  <th class="col-src">Src</th>
+                  <th class="col-dst">Dst</th>
+                  <th class="col-proto">Proto</th>
+                  <th class="col-sport">Sport</th>
+                  <th class="col-dport">Dport</th>
+                  <th class="col-len">Len</th>
+                  <th class="col-flag">Flags</th>
+                </tr>
+              </thead>
+
+              <tbody id="pktBody">
+                {% for p in init_pkts %}
+                <tr>
+                  <td class="col-time mono">{{ p.ts }}</td>
+                  <td class="col-src mono">{{ p.src }}</td>
+                  <td class="col-dst mono">{{ p.dst }}</td>
+                  <td class="col-proto">{{ p.proto }}</td>
+                  <td class="col-sport mono">{{ p.sport }}</td>
+                  <td class="col-dport mono">{{ p.dport }}</td>
+                  <td class="col-len mono">{{ p.len }}</td>
+                  <td class="col-flag mono">{{ p.flags }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLOWS -->
+      <div class="card">
+        <div class="card-h">
+          <h3>Live Flow Predictions</h3>
+          <div class="controls">
+            <label class="toggle"><input type="checkbox" id="onlyAttacks"/> Only attacks</label>
+            <label class="toggle"><input type="checkbox" id="soundAlerts" checked/> Sound</label>
+            <button class="btn" id="pauseFlows">Pause</button>
+            <button class="btn" id="clearFlows">Clear</button>
+          </div>
+        </div>
+
+        <div class="card-b">
+          <div class="table-wrap flows">
+            <table class="stream" id="flowTable">
+              <thead>
+                <tr>
+                  <th class="col-time">Time</th>
+                  <th class="col-src">Src</th>
+                  <th class="col-dst">Dst</th>
+                  <th class="col-sport">Sport</th>
+                  <th class="col-dport">Dport</th>
+                  <th class="col-proto">Proto</th>
+                  <th class="col-label">Label</th>
+                  <th class="col-conf">Conf</th>
+                </tr>
+              </thead>
+
+              <tbody id="flowBody">
+                {% for f in init_flows %}
+                <tr data-features='{{ f.features|tojson }}' data-label="{{ f.label }}">
+                  <td class="col-time mono">{{ f.ts }}</td>
+                  <td class="col-src mono">{{ f.src }}</td>
+                  <td class="col-dst mono">{{ f.dst }}</td>
+                  <td class="col-sport mono">{{ f.sport }}</td>
+                  <td class="col-dport mono">{{ f.dport }}</td>
+                  <td class="col-proto">{{ f.proto }}</td>
+                  <td class="col-label">
+                    {% if f.label == "BENIGN" %}
+                      <span class="badge ok">{{ f.label }}</span>
+                    {% else %}
+                      <span class="badge bad">{{ f.label }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="col-conf mono">{{ f.confidence }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <p style="margin:10px 0 0; color:#94a3b8; font-weight:900;">
+            Click a flow row to view the extracted feature vector.
+          </p>
+        </div>
+      </div>
     </div>
 
-    {% if attack_counts %}
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card p-3">
-                <h6 class="text-center mb-2">Attack Type Distribution</h6>
-                <canvas id="attackChart"></canvas>
-            </div>
+    <!-- RIGHT -->
+    <div class="card">
+      <div class="card-h">
+        <h3>Charts + Feature Inspector</h3>
+        <div class="controls">
+          <button class="btn" id="resetCharts">Reset charts</button>
         </div>
-        <div class="col-md-6 mb-4">
-            <div class="card p-3">
-                <h6 class="text-center mb-2">Normal vs Attack Summary</h6>
-                <canvas id="summaryChart"></canvas>
-            </div>
+      </div>
+
+      <div class="card-b">
+        <div class="charts">
+          <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
         </div>
+
+        <div style="height:12px;"></div>
+
+        <div class="feature-wrap">
+          <table class="feat">
+            <thead><tr><th>Feature</th><th>Value</th></tr></thead>
+            <tbody id="featBody">
+              {% for f in feature_order %}
+              <tr><td>{{ f }}</td><td>—</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
     </div>
-    {% endif %}
+
+  </div>
 </div>
+{% endblock %}
 
-<div class="text-center mb-4">
-    <button class="btn btn-primary" hx-post="/start_detection" hx-swap="none" hx-trigger="click">🚀 Start Packet Capture</button>
-</div>
+{% block scripts %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-{% if attack_counts %}
 <script>
-    const attackLabels = {{ attack_counts.keys()|list|safe }};
-    const attackData = {{ attack_counts.values()|list|safe }};
-    const normalCount = {{ normal_count }};
-    const attackCount = {{ attack_count }};
+  const socket = io();
 
-    new Chart(document.getElementById('attackChart'), {
-        type: 'bar',
-        data: {
-            labels: attackLabels,
-            datasets: [{ label: 'Detected Count', data: attackData }]
-        },
-        options: { plugins:{ legend:{ display:false } }, responsive:true }
-    });
+  const dot = document.getElementById("dot");
+  const conn = document.getElementById("conn");
+  const counts = document.getElementById("counts");
 
-    new Chart(document.getElementById('summaryChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['BENIGN','ATTACK'],
-            datasets: [{ data: [normalCount, attackCount] }]
-        },
-        options: { responsive:true }
-    });
+  const pktBody = document.getElementById("pktBody");
+  const flowBody = document.getElementById("flowBody");
+
+  const onlyAttacks = document.getElementById("onlyAttacks");
+  const soundAlerts = document.getElementById("soundAlerts");
+  const pausePktsBtn = document.getElementById("pausePkts");
+  const clearPktsBtn = document.getElementById("clearPkts");
+  const pauseFlowsBtn = document.getElementById("pauseFlows");
+  const clearFlowsBtn = document.getElementById("clearFlows");
+  const resetChartsBtn = document.getElementById("resetCharts");
+
+  const alertBar = document.getElementById("alertBar");
+  const alertMsg = document.getElementById("alertMsg");
+  const alertCountEl = document.getElementById("alertCount");
+  const lastAlertEl = document.getElementById("lastAlert");
+
+  let pausePkts = false;
+  let pauseFlows = false;
+
+  pausePktsBtn.onclick = () => { pausePkts = !pausePkts; pausePktsBtn.textContent = pausePkts ? "Resume" : "Pause"; };
+  pauseFlowsBtn.onclick = () => { pauseFlows = !pauseFlows; pauseFlowsBtn.textContent = pauseFlows ? "Resume" : "Pause"; };
+
+  clearPktsBtn.onclick = () => { pktBody.innerHTML = ""; };
+  clearFlowsBtn.onclick = () => { flowBody.innerHTML = ""; renderFeatures(null); };
+
+  // -------- Feature Inspector --------
+  const featBody = document.getElementById("featBody");
+  const featureOrder = {{ feature_order|tojson }};
+
+  function fmtVal(v){
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    return n.toFixed(6);
+  }
+  function renderFeatures(features){
+    featBody.innerHTML = "";
+    for (const f of featureOrder){
+      const raw = (features && (f in features)) ? features[f] : "—";
+      const v = (raw === "—") ? "—" : fmtVal(raw);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${f}</td><td>${v}</td>`;
+      featBody.appendChild(tr);
+    }
+  }
+
+  // -------- Charts --------
+  let benignCount = 0, attackCount = 0;
+  const labelCounts = new Map();
+  const minuteBuckets = [];
+  const MAX_MINUTES = 12;
+
+  function minuteLabel(){
+    const d = new Date();
+    return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0');
+  }
+  function pushMinute(isAttack){
+    const t = minuteLabel();
+    let last = minuteBuckets[minuteBuckets.length - 1];
+    if (!last || last.t !== t){
+      minuteBuckets.push({t, benign:0, attack:0});
+      if (minuteBuckets.length > MAX_MINUTES) minuteBuckets.shift();
+      last = minuteBuckets[minuteBuckets.length - 1];
+    }
+    if (isAttack) last.attack++; else last.benign++;
+  }
+  function bumpLabel(label){ labelCounts.set(label, (labelCounts.get(label) || 0) + 1); }
+  function topLabels(limit=8){
+    const arr = [...labelCounts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit);
+    return {labels: arr.map(x=>x[0]), values: arr.map(x=>x[1])};
+  }
+
+  function baseScales(){
+    return {
+      x: { ticks:{ color:"#94a3b8", maxRotation:0, autoSkip:true }, grid:{ color:"rgba(148,163,184,.12)" } },
+      y: { beginAtZero:true, ticks:{ color:"#94a3b8", precision:0 }, grid:{ color:"rgba(148,163,184,.12)" } }
+    };
+  }
+
+  const lineChart = new Chart(document.getElementById("lineChart"), {
+    type: "line",
+    data: { labels: [], datasets: [
+      { label: "Benign/min", data: [], tension: 0.35, pointRadius: 2 },
+      { label: "Attack/min", data: [], tension: 0.35, pointRadius: 2 }
+    ]},
+    options: { responsive:true, plugins:{ legend:{ labels:{ color:"#e5e7eb" } } }, scales: baseScales() }
+  });
+
+  const barChart = new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: { labels: [], datasets: [{ label:"Top Labels", data: [] }] },
+    options: { responsive:true, plugins:{ legend:{ labels:{ color:"#e5e7eb" } } }, scales: baseScales() }
+  });
+
+  const pieChart = new Chart(document.getElementById("pieChart"), {
+    type: "doughnut",
+    data: { labels:["Benign","Attack"], datasets:[{ data:[0,0] }] },
+    options: { responsive:true, plugins:{ legend:{ labels:{ color:"#e5e7eb" } } } }
+  });
+
+  function refreshCharts(){
+    lineChart.data.labels = minuteBuckets.map(x=>x.t);
+    lineChart.data.datasets[0].data = minuteBuckets.map(x=>x.benign);
+    lineChart.data.datasets[1].data = minuteBuckets.map(x=>x.attack);
+    lineChart.update();
+
+    const top = topLabels(8);
+    barChart.data.labels = top.labels;
+    barChart.data.datasets[0].data = top.values;
+    barChart.update();
+
+    pieChart.data.datasets[0].data = [benignCount, attackCount];
+    pieChart.update();
+
+    counts.textContent = `Benign: ${benignCount} | Attack: ${attackCount}`;
+  }
+
+  resetChartsBtn.onclick = () => {
+    benignCount = 0; attackCount = 0;
+    labelCounts.clear();
+    minuteBuckets.length = 0;
+    refreshCharts();
+  };
+
+  // -------- Alerts (frontend + backend supported) --------
+  let alertCount = 0;
+  let lastAlertAt = 0;
+  const ALERT_COOLDOWN_MS = 1500;
+
+  function nowHHMMSS(){
+    const d = new Date();
+    return String(d.getHours()).padStart(2,'0') + ":" +
+           String(d.getMinutes()).padStart(2,'0') + ":" +
+           String(d.getSeconds()).padStart(2,'0');
+  }
+
+  function beep(){
+    try{
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = "sine"; o.frequency.value = 880;
+      g.gain.value = 0.06;
+      o.start();
+      setTimeout(() => { o.stop(); ctx.close(); }, 130);
+    }catch(e){}
+  }
+
+  function showAlert(flow){
+    const now = Date.now();
+    if (now - lastAlertAt < ALERT_COOLDOWN_MS) return;
+    lastAlertAt = now;
+
+    alertCount++;
+    alertCountEl.textContent = String(alertCount);
+    lastAlertEl.textContent = nowHHMMSS();
+
+    alertMsg.innerHTML =
+      `🚨 Attack detected: <b>${flow.label}</b> — ` +
+      `<span class="mono">${flow.src}:${flow.sport}</span> → ` +
+      `<span class="mono">${flow.dst}:${flow.dport}</span>` +
+      ` (Conf: <b>${flow.confidence ?? "—"}</b>)`;
+
+    alertBar.style.display = "block";
+    setTimeout(() => { alertBar.style.display = "none"; }, 4500);
+
+    if (soundAlerts && soundAlerts.checked) beep();
+  }
+
+  // -------- Rows --------
+  function addPacketRow(p){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="col-time mono">${p.ts}</td>
+      <td class="col-src mono" title="${p.src}">${p.src}</td>
+      <td class="col-dst mono" title="${p.dst}">${p.dst}</td>
+      <td class="col-proto">${p.proto}</td>
+      <td class="col-sport mono">${p.sport ?? ""}</td>
+      <td class="col-dport mono">${p.dport ?? ""}</td>
+      <td class="col-len mono">${p.len}</td>
+      <td class="col-flag mono" title="${p.flags ?? ""}">${p.flags ?? ""}</td>
+    `;
+    pktBody.prepend(tr);
+    while (pktBody.children.length > 200) pktBody.removeChild(pktBody.lastChild);
+  }
+
+  function addFlowRow(f){
+    if (onlyAttacks.checked && f.label === "BENIGN") return null;
+
+    const tr = document.createElement("tr");
+    tr.dataset.features = JSON.stringify(f.features || {});
+    tr.dataset.label = f.label;
+
+    const badge = (f.label === "BENIGN")
+      ? `<span class="badge ok">BENIGN</span>`
+      : `<span class="badge bad">${f.label}</span>`;
+
+    tr.innerHTML = `
+      <td class="col-time mono">${f.ts}</td>
+      <td class="col-src mono" title="${f.src}">${f.src}</td>
+      <td class="col-dst mono" title="${f.dst}">${f.dst}</td>
+      <td class="col-sport mono">${f.sport}</td>
+      <td class="col-dport mono">${f.dport}</td>
+      <td class="col-proto">${f.proto}</td>
+      <td class="col-label">${badge}</td>
+      <td class="col-conf mono">${f.confidence ?? ""}</td>
+    `;
+
+    tr.onclick = () => renderFeatures(JSON.parse(tr.dataset.features || "{}"));
+
+    flowBody.prepend(tr);
+    while (flowBody.children.length > 250) flowBody.removeChild(flowBody.lastChild);
+
+    return tr;
+  }
+
+  // -------- Socket events --------
+  socket.on("connect", () => { dot.classList.remove("off"); conn.textContent = "Connected"; });
+  socket.on("disconnect", () => { dot.classList.add("off"); conn.textContent = "Disconnected"; });
+
+  socket.on("packet_event", (p) => { if (!pausePkts) addPacketRow(p); });
+
+  // (1) Normal flow stream
+  socket.on("flow_event", (f) => {
+    if (pauseFlows) return;
+
+    const tr = addFlowRow(f);
+
+    const isAttack = (f.label !== "BENIGN");
+    if (isAttack) attackCount++; else benignCount++;
+
+    pushMinute(isAttack);
+    bumpLabel(f.label);
+    refreshCharts();
+
+    if (isAttack){
+      if (tr) tr.classList.add("row-attack-flash");
+      // frontend alert fallback
+      showAlert(f);
+    }
+  });
+
+  // (2) Backend-driven alert stream (recommended)
+  socket.on("alert_event", (a) => {
+    // If you add backend alert_event, this will show alerts even if flow_event changes later
+    showAlert(a);
+  });
+
+  // init
+  renderFeatures(null);
+  refreshCharts();
 </script>
-{% endif %}
 {% endblock %}
