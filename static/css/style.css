@@ -35,15 +35,18 @@ body::before {
 }
 
 .container {
-    max-width: 1100px;
-    margin: 50px auto;
-    padding: 2.5rem;
-    background: rgba(30, 41, 59, 0.95);
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    max-width: 900px;              /* ⬅ smaller card */
+    margin: 60px auto;
+    padding: 2rem;                 /* ⬅ tighter padding */
+    background: rgba(30, 41, 59, 0.97);
+    border-radius: 22px;
+    box-shadow:
+        0 20px 40px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.05);
     text-align: center;
     animation: fadeIn 0.6s ease;
 }
+
 
 /* -------------------------------
    HEADINGS & TYPOGRAPHY
@@ -169,20 +172,28 @@ input, textarea, .textarea, select {
     width: 100%;
     padding: 1rem 1.2rem;
     border-radius: 0.25rem;
-    background-color: rgba(232, 240, 254, 1);
+    background: rgba(2, 6, 23, 0.9);
+    color: #e5e7eb; 
     border: none;
     box-sizing: border-box;
 }
 
+/* Force text inside input to be visible even when filled */
+input[type="number"]:-webkit-autofill,
+input[type="number"] {
+    color: #e5e7eb !important;
+}
+
 input[type="file"], select {
     background-color: #1e293b;
-    color: #f8fafc;
+    color: #ffc;
     border: 2px dashed #3b82f6;
     padding: 0.8rem;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
+
 
 input[type="file"]:hover {
     border-color: #06b6d4;
@@ -594,4 +605,104 @@ body {
         flex-direction: column;
         gap: 15px;
     }
+}
+
+/* ========= GLOBAL APP THEME (Matches Tailwind layout) ========= */
+:root{
+  --bg1:#020617;
+  --bg2:#0b1224;
+  --card: rgba(15, 23, 42, 0.88);
+  --border: rgba(148, 163, 184, 0.18);
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --field: rgba(2, 6, 23, 0.92);
+  --fieldBorder: rgba(148, 163, 184, 0.26);
+  --focus: rgba(96, 165, 250, 0.35);
+}
+
+.app-bg{
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 10% 10%, rgba(59,130,246,.18), transparent 60%),
+    radial-gradient(900px 500px at 90% 20%, rgba(139,92,246,.18), transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* Navbar polish (keeps your Tailwind colors but improves hover/active) */
+.navitems a{
+  padding: 8px 14px;
+  border-radius: 10px;
+  transition: background .18s ease, color .18s ease;
+}
+.navitems a:hover{
+  background: rgba(148,163,184,.14);
+}
+.hoverlist a{
+  display:flex;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.hoverlist a:hover{
+  background: rgba(2,6,23,.08);
+}
+
+/* ========= GLASS CARD ========= */
+.glass-card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 25px 50px rgba(0,0,0,.65);
+}
+
+/* ========= FORMS ========= */
+.form-label-dark{
+  color: #cbd5f5;
+  font-size: .92rem;
+  margin-bottom: 6px;
+}
+
+.form-control-dark{
+  width: 100%;
+  background: var(--field);
+  border: 1px solid var(--fieldBorder);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+}
+.form-control-dark::placeholder{ color: var(--muted); }
+.form-control-dark:focus{
+  background: rgba(2,6,23,1);
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 4px var(--focus);
+  color: #fff;
+}
+
+.btn-gradient{
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.btn-gradient:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(59,130,246,.55);
+}
+
+.result-box{
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 700;
+  color: #60a5fa;
+  background: rgba(2,6,23,.55);
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 14px;
+  padding: 14px 10px;
 }

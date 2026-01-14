@@ -17,6 +17,7 @@ import io
 import base64
 import matplotlib.pyplot as plt
 from pathlib import Path
+import re
 
 
 filename=""
@@ -32,13 +33,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Bind the SQLAlchemy object to your Flask app
 db.init_app(app)
-
-
 app.secret_key = 'secret_key'
 
-
 # from youtube tutorial
-
 app.config['SESSION_TYPE'] = 'filesystem'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
@@ -107,6 +104,54 @@ def home():
     return render_template('home.html')
 
 
+
+def is_strong_password(password):
+    if len(password) < 8:
+        return False
+    if not re.search(r"[A-Z]", password):
+        return False
+    if not re.search(r"[a-z]", password):
+        return False
+    if not re.search(r"[0-9]", password):
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False
+    return True
+
+# @app.route('/register', methods=['GET','POST'])
+# def register():
+#     if request.method == 'POST':
+#         name = request.form['name']
+#         email = request.form['email']
+#         password = request.form['password']
+#         confirm_password = request.form.get('confirm_password')
+
+#         # Validate
+#         if not name or not email or not password:
+#             flash("Please fill in all fields", "error")
+#             return redirect('/register')
+
+#         if password != confirm_password:
+#             flash("Passwords do not match", "error")
+#             return redirect('/register')
+
+#         # Check if user exists
+#         existing_user = User.query.filter_by(email=email).first()
+#         if existing_user:
+#             flash("Email already registered. Please login.", "error")
+#             return redirect('/register')
+
+#         # Create new user with hashed password
+#         new_user = User(name=name, email=email)
+#         new_user.set_password(password)
+
+#         db.session.add(new_user)
+#         db.session.commit()
+
+#         flash("Registration successful! Please login.")
+#         return redirect('/login')
+
+#     return render_template('register.html')
 @app.route('/register', methods=['GET','POST'])
 def register():
     if request.method == 'POST':
@@ -115,32 +160,60 @@ def register():
         password = request.form['password']
         confirm_password = request.form.get('confirm_password')
 
-        # Validate
-        if not name or not email or not password:
-            flash("Please fill in all fields", "error")
+        # Basic validation
+        if not name or not email or not password or not confirm_password:
+            flash("Please fill in all fields", "danger")
             return redirect('/register')
 
+        # Password match
         if password != confirm_password:
-            flash("Passwords do not match", "error")
+            flash("Passwords do not match", "danger")
+            return redirect('/register')
+
+        # Strong password validation
+        if not is_strong_password(password):
+            flash(
+                "Password must be at least 8 characters long and include "
+                "uppercase, lowercase, number, and special character.",
+                "danger"
+            )
             return redirect('/register')
 
         # Check if user exists
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            flash("Email already registered. Please login.", "error")
+            flash("Email already registered. Please login.", "warning")
             return redirect('/register')
 
-        # Create new user with hashed password
+        # Create new user
         new_user = User(name=name, email=email)
         new_user.set_password(password)
 
         db.session.add(new_user)
         db.session.commit()
 
-        flash("Registration successful! Please login.")
+        flash("Registration successful! Please login.", "success")
         return redirect('/login')
 
     return render_template('register.html')
+
+# @app.route('/login', methods=['GET','POST'])
+# def login():
+#     if request.method == 'POST':
+#         email = request.form['email']
+#         password = request.form['password']
+
+#         user = User.query.filter_by(email=email).first()
+
+#         if user and user.check_password(password):
+#             session['email'] = user.email
+#             flash("Login successful!",'success')
+#             return redirect('/dashboard')
+#         else:
+#             flash("Invalid email or password", "danger")
+#             return redirect('/login')
+
+#     return render_template('login.html')
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -152,14 +225,13 @@ def login():
 
         if user and user.check_password(password):
             session['email'] = user.email
-            flash("Login successful!",'success')
+            flash("Login successful!", "success")
             return redirect('/dashboard')
         else:
             flash("Invalid email or password", "danger")
             return redirect('/login')
 
     return render_template('login.html')
-
 
 @app.route('/dashboard')
 def dashboard():
@@ -272,22 +344,7 @@ def dashboard():
 def logout():
     session.pop('email',None)
     return redirect('/login')
-
-# #{'Dos':0,'Probe':1,'R2L':2,'U2R':3,'Normal':4}
-# def decode(output):
-#     print(output)
-#     if output==0:
-#         return 'Dos Attack Found in Packet'
-#     elif output==1:
-#         return 'Probe Attack Found in Packet'
-#     elif output==2:
-#         return 'R2L Attack Found in Packet'
-#     elif output==3:
-#         return 'U2R Attack Found in Packet'
-#     elif output==4:
-#         return 'Normal Packet'
-
-
+# Load the trained model
 model_filename='model/StackingEnsemble.joblib'
 loaded_model = joblib.load(model_filename)
 
@@ -314,7 +371,7 @@ class_mapping_reverse={
 
 # List of features in the exact order
 feature_order=[
-   ['Fwd Packet Length Max',
+   'Fwd Packet Length Max',
  'Fwd Packet Length Mean',
  'Bwd Packets/s',
  'Total Length of Fwd Packets',
@@ -333,7 +390,7 @@ feature_order=[
  'Subflow Bwd Bytes',
  'Total Length of Bwd Packets',
  'Destination Port',
- 'Packet Length Variance']
+ 'Packet Length Variance'
 ]
 # def preprocess_input(user_input):
 #     #convert input to the appropriate data types
@@ -358,28 +415,33 @@ def preprocess_input(user_input):
 
 
 from flask import Flask,jsonify
+@app.route('/predict', methods=['GET', 'POST'])
+def predict():
+    result = None
+    if request.method == 'POST':
+        try:
+            # Collect user input
+            user_input = {}
+            for column in feature_order:  # now column is a string
+                value = request.form.get(column)
+                if value is None or value.strip() == "":
+                    value = 0
+                user_input[column] = float(value)
 
-# @app.route('/predict', methods=['GET', 'POST'])
-# def predict():
-#     result = None
-#     try:
-#         if request.method == 'POST':
-#             user_input = dict(request.form)
-#             # Preprocess
-#             user_data = preprocess_input(user_input)
+            # Convert to DataFrame for model
+            input_df = pd.DataFrame([user_input])
 
-#             # Prediction
-#             prediction = loaded_model.predict(user_data)[0]
-#             decoded_class = class_mapping_reverse.get(prediction, 'Unknown')
-#             result = f"Prediction: {decoded_class}"
+            # Make prediction
+            prediction = loaded_model.predict(input_df)
+            decoded_class = class_mapping_reverse.get(prediction[0], 'Unknown')
 
-#     except Exception as e:
-#         print(f"Error: {e}")
-#         result = f"Error: {str(e)}"
+            # Set result to show on the same page
+            result = f"Predicted Class: {decoded_class}"
 
-#     return render_template('predict.html', result=result, feature_order=feature_order)
+        except Exception as e:
+            result = f"Error: {str(e)}"
 
-
+    return render_template('predict.html', feature_order=feature_order, result=result)
 
 # #store the prediction temporarily
 # last_prediction = []
@@ -588,111 +650,108 @@ def profile():
         total_attacks=total_attacks
     )
 
-#start packet capturing
-realtime_detector.start_capture_thread()
+# #start packet capturing
+# realtime_detector.start_capture_thread()
 
 
-@app.route('/realtime_dashboard')
-def realtime_dashboard():
-    # Provide summary stats to template (initial render)
-    if os.path.exists(LOG_FILE):
-        try:
-            df = pd.read_csv(LOG_FILE)
-        except Exception as e:
-            print("Error reading log:", e)
-            df = pd.DataFrame()
+# @app.route('/realtime_dashboard')
+# def realtime_dashboard():
+#     # Provide summary stats to template (initial render)
+#     if os.path.exists(LOG_FILE):
+#         try:
+#             df = pd.read_csv(LOG_FILE)
+#         except Exception as e:
+#             print("Error reading log:", e)
+#             df = pd.DataFrame()
 
-        total = len(df)
-        if LABEL_COL in df.columns:
-            normal = int((df[LABEL_COL] == 'BENIGN').sum())
-            attack = total - normal
-            attack_counts = df[LABEL_COL].value_counts().to_dict()
-        else:
-            normal = 0
-            attack = 0
-            attack_counts = {}
-        accuracy = round((normal / total) * 100, 2) if total > 0 else 0
-    else:
-        total = normal = attack = accuracy = 0
-        attack_counts = {}
+#         total = len(df)
+#         if LABEL_COL in df.columns:
+#             normal = int((df[LABEL_COL] == 'BENIGN').sum())
+#             attack = total - normal
+#             attack_counts = df[LABEL_COL].value_counts().to_dict()
+#         else:
+#             normal = 0
+#             attack = 0
+#             attack_counts = {}
+#         accuracy = round((normal / total) * 100, 2) if total > 0 else 0
+#     else:
+#         total = normal = attack = accuracy = 0
+#         attack_counts = {}
 
-    return render_template("realtime_dashboard.html",
-                           total_predictions=total,
-                           normal_count=normal,
-                           attack_count=attack,
-                           accuracy=accuracy,
-                           attack_counts=attack_counts)
+#     return render_template("realtime_dashboard.html",
+#                            total_predictions=total,
+#                            normal_count=normal,
+#                            attack_count=attack,
+#                            accuracy=accuracy,
+#                            attack_counts=attack_counts)
 
-@app.route('/realtime_data')
-def realtime_data():
-    """
-    Returns an HTML fragment (table) showing the most recent detection rows.
-    HTMX will load this into the dashboard.
-    """
-    rows_html = []
-    if os.path.exists(LOG_FILE):
-        try:
-            df = pd.read_csv(LOG_FILE)
-        except Exception as e:
-            print("Failed to read log:", e)
-            df = pd.DataFrame()
+# @app.route('/realtime_data')
+# def realtime_data():
+#     """
+#     Returns an HTML fragment (table) showing the most recent detection rows.
+#     HTMX will load this into the dashboard.
+#     """
+#     rows_html = []
+#     if os.path.exists(LOG_FILE):
+#         try:
+#             df = pd.read_csv(LOG_FILE)
+#         except Exception as e:
+#             print("Failed to read log:", e)
+#             df = pd.DataFrame()
 
-        # Use last 50 rows for live feed
-        tail = df.tail(50).copy()
-        # Normalize column names to expected keys
-        cols = [c.lower().strip() for c in tail.columns.tolist()]
-        tail.columns = cols
+#         # Use last 50 rows for live feed
+#         tail = df.tail(50).copy()
+#         # Normalize column names to expected keys
+#         cols = [c.lower().strip() for c in tail.columns.tolist()]
+#         tail.columns = cols
 
-        # build rows
-        for _, row in tail[::-1].iterrows():  # reversed: newest first
-            ts = row.get("timestamp", "")
-            label = row.get("label", "Unknown")
-            port = row.get("destination_port", "") or row.get("port", "")
-            avglen = row.get("avg_fwd_packet_len", "") or row.get("avglen", "")
-            dur = row.get("flow_duration", "")
+#         # build rows
+#         for _, row in tail[::-1].iterrows():  # reversed: newest first
+#             ts = row.get("timestamp", "")
+#             label = row.get("label", "Unknown")
+#             port = row.get("destination_port", "") or row.get("port", "")
+#             avglen = row.get("avg_fwd_packet_len", "") or row.get("avglen", "")
+#             dur = row.get("flow_duration", "")
 
-            color = "text-success" if str(label).upper() == "BENIGN" else "text-danger"
-            row_html = f"""
-            <tr>
-                <td>{ts}</td>
-                <td class="{color}">{label}</td>
-                <td>{port}</td>
-                <td>{avglen}</td>
-                <td>{dur}</td>
-            </tr>
-            """
-            rows_html.append(row_html)
-    else:
-        rows_html.append("<tr><td colspan='5' class='text-center'>No data yet</td></tr>")
+#             color = "text-success" if str(label).upper() == "BENIGN" else "text-danger"
+#             row_html = f"""
+#             <tr>
+#                 <td>{ts}</td>
+#                 <td class="{color}">{label}</td>
+#                 <td>{port}</td>
+#                 <td>{avglen}</td>
+#                 <td>{dur}</td>
+#             </tr>
+#             """
+#             rows_html.append(row_html)
+#     else:
+#         rows_html.append("<tr><td colspan='5' class='text-center'>No data yet</td></tr>")
 
-    table_html = f"""
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Label</th>
-                <th>Destination Port</th>
-                <th>Avg Fwd Len</th>
-                <th>Flow Duration</th>
-            </tr>
-        </thead>
-        <tbody>
-            {''.join(rows_html)}
-        </tbody>
-    </table>
-    """
-    return table_html
+#     table_html = f"""
+#     <table class="table table-striped">
+#         <thead>
+#             <tr>
+#                 <th>Timestamp</th>
+#                 <th>Label</th>
+#                 <th>Destination Port</th>
+#                 <th>Avg Fwd Len</th>
+#                 <th>Flow Duration</th>
+#             </tr>
+#         </thead>
+#         <tbody>
+#             {''.join(rows_html)}
+#         </tbody>
+#     </table>
+#     """
+#     return table_html
 
-@app.route('/start_detection', methods=['POST'])
-def start_detection():
-    started = realtime_detector.start_capture_thread()
-    if started:
-        return ("", 204)
-    else:
-        return ("Already running", 200)
-    
-
-
-    
+# @app.route('/start_detection', methods=['POST'])
+# def start_detection():
+#     started = realtime_detector.start_capture_thread()
+#     if started:
+#         return ("", 204)
+#     else:
+#         return ("Already running", 200)
+     
 if __name__=='__main__':
     app.run(debug=True)
