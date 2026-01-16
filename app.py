@@ -28,6 +28,9 @@ from flask_socketio import SocketIO
 from flow_engine import FlowEngine
 from scapy.all import sniff
 from scapy.layers.inet import IP, TCP, UDP
+from flask import session
+
+
 
 
 filename=""
@@ -123,6 +126,16 @@ def inject_user():
         user = User.query.filter_by(email=session['email']).first()
         return dict(user=user)
     return dict(user=None)
+from functools import wraps
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if 'email' not in session:
+            flash("Please login first", "warning")
+            return redirect('/login')
+        return view(*args, **kwargs)
+    return wrapped
 
 
 @app.route('/')
@@ -260,6 +273,7 @@ def login():
     return render_template('login.html')
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     global cumulative_predictions
     user = User.query.filter_by(email=session['email']).first()
@@ -365,11 +379,12 @@ def dashboard():
                            plot_url_bar=plot_url_bar,
                            plot_url_pie=plot_url_pie,
                            plot_url_line=plot_url_line)
-
 @app.route('/logout')
 def logout():
-    session.pop('email',None)
-    return redirect('/login')
+    session.clear()   # ✅ clears all session keys
+    flash("Logged out", "info")
+    return redirect('/')
+
 # # Load the trained model
 # model_filename='model/StackingEnsemble.joblib'
 # loaded_model = joblib.load(model_filename)
@@ -442,6 +457,7 @@ def preprocess_input(user_input):
 
 from flask import Flask,jsonify
 @app.route('/predict', methods=['GET', 'POST'])
+@login_required
 def predict():
     result = None
     if request.method == 'POST':
@@ -532,6 +548,7 @@ last_prediction = []           # Current upload predictions
 cumulative_predictions = []    # All predictions cumulatively for dashboard
 
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload_file():
     global last_prediction, cumulative_predictions
 
@@ -607,6 +624,7 @@ def upload_file():
         return render_template('upload.html', error=f"Error processing file: {str(e)}")
 
 @app.route('/download_report')
+@login_required
 def download_report():
     global last_prediction
     if not last_prediction:
@@ -625,11 +643,13 @@ def download_report():
     )
 
 @app.route('/about')
+@login_required
 def about():
     return render_template('aboutus.html')
 
 
 @app.route('/profile', methods=['GET', 'POST'])
+@login_required
 def profile():
     global cumulative_predictions
     if 'email' not in session:
@@ -870,6 +890,7 @@ def flow_expirer_thread():
         socketio.sleep(EXPIRE_CHECK_INTERVAL)
 
 @app.route("/realtime_dashboard")
+@login_required
 def realtime_dashboard():
     return render_template(
         "realtime_dashboard.html",

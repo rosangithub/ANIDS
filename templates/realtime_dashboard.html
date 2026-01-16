@@ -1,321 +1,183 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
 
 {% block head %}
 <title>ANIDS | Realtime Dashboard</title>
-
-<style>
-  .wrap { max-width: 1400px; margin: 18px auto; padding: 0 12px; }
-  .header { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom: 10px; }
-  .title { font-size: 1.6rem; font-weight: 900; margin: 0; color:#e5e7eb; }
-  .subtitle { margin: 4px 0 0; color:#94a3b8; font-weight:700; font-size:.95rem; }
-
-  .pill { display:flex; align-items:center; gap:10px; padding:10px 14px; background: rgba(2,6,23,.55); border:1px solid rgba(148,163,184,.18); border-radius:999px; font-weight:900; color:#e5e7eb; white-space:nowrap; }
-  .dot { width:10px; height:10px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.16); }
-  .dot.off { background:#f87171; box-shadow:0 0 0 4px rgba(248,113,113,.16); }
-
-  .grid { display:grid; grid-template-columns: 1.15fr 0.85fr; gap: 12px; }
-  @media (max-width: 1100px){ .grid{ grid-template-columns: 1fr; } }
-  .split { display:grid; grid-template-rows: 320px 380px; gap: 12px; }
-  @media (max-width:1100px){ .split{ grid-template-rows: auto; } }
-
-  .card { background: rgba(30,41,59,.92); border: 1px solid rgba(148,163,184,.16); border-radius: 18px; box-shadow: 0 18px 45px rgba(0,0,0,.35); overflow:hidden; min-width:0; }
-  .card-h { padding: 12px 14px; border-bottom:1px solid rgba(148,163,184,.12); display:flex; justify-content:space-between; align-items:center; gap:10px; }
-  .card-h h3 { margin:0; font-size: 1rem; font-weight: 900; color:#e5e7eb; }
-  .card-b { padding: 12px 14px; }
-
-  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .btn { padding:8px 12px; border-radius: 12px; border:1px solid rgba(148,163,184,.18); background: rgba(2,6,23,.55); color:#e5e7eb; font-weight:900; cursor:pointer; }
-  .btn:hover { background: rgba(2,6,23,.72); }
-  .toggle { display:flex; align-items:center; gap:8px; color:#cbd5f5; font-weight:900; user-select:none; }
-  .toggle input { transform: scale(1.15); }
-
-  /* ---------- PERFECT TABLE (header always aligned with body) ---------- */
-  :root{
-    --c-time: 110px;
-    --c-ip:   240px;
-    --c-port: 90px;
-    --c-proto:90px;
-    --c-label:170px;
-    --c-conf: 90px;
-    --c-len:  70px;
-    --c-flag: 140px;
-  }
-
-  .table-wrap{
-    background: rgba(2,6,23,.35);
-    border-radius: 14px;
-    border:1px solid rgba(148,163,184,.12);
-    overflow: hidden; /* important: we scroll tbody, not wrapper */
-  }
-
-  /* we make tbody scroll so thead stays fixed and columns match */
-  table.stream{
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-  table.stream thead, table.stream tbody{
-    display:block;
-  }
-  table.stream thead tr,
-  table.stream tbody tr{
-    display: table;
-    table-layout: fixed;
-    width: 100%;
-  }
-
-  /* scroll body */
-  table.stream tbody{
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-gutter: stable both-edges;
-  }
-
-  /* heights per table */
-  .packets table.stream tbody{ max-height: 240px; }
-  .flows   table.stream tbody{ max-height: 320px; }
-
-  table.stream th, table.stream td{
-    box-sizing: border-box;
-    padding: 10px;
-    white-space: nowrap;
-    overflow:hidden;
-    text-overflow: ellipsis;
-  }
-  table.stream thead th{
-    background: rgba(2,6,23,.92);
-    color:#cbd5f5;
-    font-size:.85rem;
-    font-weight: 900;
-    text-align:left;
-    border-bottom:1px solid rgba(148,163,184,.18);
-  }
-  table.stream tbody td{
-    border-bottom:1px solid rgba(148,163,184,.10);
-    font-size:.9rem;
-    color:#e5e7eb;
-  }
-  table.stream tbody tr{ cursor:pointer; }
-  table.stream tbody tr:hover{ background: rgba(148,163,184,.08); }
-
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-  /* column widths via classes on both th and td */
-  .col-time{ width: var(--c-time); }
-  .col-src{  width: var(--c-ip); }
-  .col-dst{  width: var(--c-ip); }
-  .col-sport{width: var(--c-port); }
-  .col-dport{width: var(--c-port); }
-  .col-proto{width: var(--c-proto); }
-  .col-label{width: var(--c-label); }
-  .col-conf{ width: var(--c-conf); text-align:right; }
-  .col-len{  width: var(--c-len); }
-  .col-flag{ width: var(--c-flag); }
-
-  .badge { padding:6px 10px; border-radius:999px; font-weight:900; font-size:.82rem; border:1px solid transparent; }
-  .ok { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.22); color:#86efac; }
-  .bad{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.22); color:#fca5a5; }
-
-  .charts { display:grid; grid-template-columns:1fr; gap:12px; }
-  .chart-wrap{ background: rgba(2,6,23,.35); border:1px solid rgba(148,163,184,.12); border-radius:14px; padding:10px; }
-  canvas { width:100% !important; height: 220px !important; }
-
-  .feature-wrap { max-height: 340px; overflow:auto; background: rgba(2,6,23,.35); border-radius:14px; border:1px solid rgba(148,163,184,.12); }
-  table.feat { width:100%; border-collapse:collapse; }
-  table.feat th, table.feat td { padding:10px; border-bottom:1px solid rgba(148,163,184,.10); }
-  table.feat th{ position:sticky; top:0; background: rgba(2,6,23,.92); color:#cbd5f5; text-align:left; font-weight:900; }
-  table.feat td:last-child { text-align:right; color:#94a3b8; font-weight:900; }
-
-  /* ---------- Alert bar (clean, not ugly) ---------- */
-  .alertbar{
-    display:none;
-    margin: 10px 0 12px;
-    padding: 10px 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(239,68,68,.35);
-    background: rgba(239,68,68,.14);
-    color: #fecaca;
-    font-weight: 900;
-  }
-  .alertbar small{
-    display:block;
-    margin-top: 4px;
-    color:#94a3b8;
-    font-weight: 800;
-  }
-
-  /* flash row on attack */
-  .row-attack-flash{ animation: flashRed 1.1s ease-out 1; }
-  @keyframes flashRed{ 0%{ background: rgba(239,68,68,.22);} 100%{ background: transparent;} }
-
-  .mini-status{ margin-top: 6px; color:#94a3b8; font-weight: 900; font-size: .88rem; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/realtime_dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="wrap">
-  <div class="header">
-    <div>
-      <p class="title">Real-Time ANIDS Dashboard</p>
-      <p class="subtitle">Live packets + flow predictions + real-time charts (no refresh).</p>
-      <div class="mini-status">
-        Alerts: <span id="alertCount">0</span> • Last alert: <span id="lastAlert">—</span>
+<div class="rt-dashboard">
+  <div class="wrap">
+
+    <div class="header">
+      <div>
+        <p class="title">Real-Time ANIDS Dashboard</p>
+        <p class="subtitle">Live packets + flow predictions + real-time charts (no refresh).</p>
+        <div class="mini-status">
+          Alerts: <span id="alertCount">0</span> • Last alert: <span id="lastAlert">—</span>
+        </div>
+      </div>
+
+      <div class="pill">
+        <span id="dot" class="dot"></span>
+        <span id="conn">Connected</span>
+        <span id="counts"></span>
       </div>
     </div>
 
-    <div class="pill">
-      <span id="dot" class="dot"></span>
-      <span id="conn">Connected</span>
-      <span id="counts" style="color:#94a3b8; font-weight:900;"></span>
+    <div class="alertbar" id="alertBar">
+      <div id="alertMsg"></div>
+      <small>Attack alert • auto hides • rate-limited</small>
     </div>
-  </div>
 
-  <div class="alertbar" id="alertBar">
-    <div id="alertMsg"></div>
-    <small>Attack alert • auto hides • rate-limited</small>
-  </div>
+    <div class="grid">
+      <div class="split">
 
-  <div class="grid">
-    <div class="split">
+        <!-- PACKETS -->
+        <div class="card">
+          <div class="card-h">
+            <h3>Live Packet Capture (Wireshark Style)</h3>
+            <div class="controls">
+              <button class="btn" id="pausePkts">Pause</button>
+              <button class="btn btn-danger" id="clearPkts">Clear</button>
+            </div>
+          </div>
 
-      <!-- PACKETS -->
+          <div class="card-b">
+            <div class="table-wrap packets">
+              <div class="table-x">
+                <div class="table-y">
+                  <table class="stream" id="pktTable">
+                    <thead>
+                      <tr>
+                        <th class="col-time">Time</th>
+                        <th class="col-src">Src</th>
+                        <th class="col-dst">Dst</th>
+                        <th class="col-proto">Proto</th>
+                        <th class="col-sport">Sport</th>
+                        <th class="col-dport">Dport</th>
+                        <th class="col-len">Len</th>
+                        <th class="col-flag">Flags</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pktBody">
+                      {% for p in init_pkts %}
+                      <tr>
+                        <td class="col-time mono">{{ p.ts }}</td>
+                        <td class="col-src mono" title="{{ p.src }}">{{ p.src }}</td>
+                        <td class="col-dst mono" title="{{ p.dst }}">{{ p.dst }}</td>
+                        <td class="col-proto">{{ p.proto }}</td>
+                        <td class="col-sport mono">{{ p.sport }}</td>
+                        <td class="col-dport mono">{{ p.dport }}</td>
+                        <td class="col-len mono">{{ p.len }}</td>
+                        <td class="col-flag mono" title="{{ p.flags }}">{{ p.flags }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FLOWS -->
+        <div class="card">
+          <div class="card-h">
+            <h3>Live Flow Predictions</h3>
+            <div class="controls">
+              <label class="toggle"><input type="checkbox" id="onlyAttacks"> Only attacks</label>
+              <label class="toggle"><input type="checkbox" id="soundAlerts" checked> Sound</label>
+              <button class="btn" id="pauseFlows">Pause</button>
+              <button class="btn btn-danger" id="clearFlows">Clear</button>
+            </div>
+          </div>
+
+          <div class="card-b">
+            <div class="table-wrap flows">
+              <div class="table-x">
+                <div class="table-y">
+                  <table class="stream" id="flowTable">
+                    <thead>
+                      <tr>
+                        <th class="col-time">Time</th>
+                        <th class="col-src">Src</th>
+                        <th class="col-dst">Dst</th>
+                        <th class="col-sport">Sport</th>
+                        <th class="col-dport">Dport</th>
+                        <th class="col-proto">Proto</th>
+                        <th class="col-label">Label</th>
+                        <th class="col-conf t-right">Conf</th>
+                      </tr>
+                    </thead>
+                    <tbody id="flowBody">
+                      {% for f in init_flows %}
+                      <tr data-features='{{ f.features|tojson }}' data-label="{{ f.label }}">
+                        <td class="col-time mono">{{ f.ts }}</td>
+                        <td class="col-src mono" title="{{ f.src }}">{{ f.src }}</td>
+                        <td class="col-dst mono" title="{{ f.dst }}">{{ f.dst }}</td>
+                        <td class="col-sport mono">{{ f.sport }}</td>
+                        <td class="col-dport mono">{{ f.dport }}</td>
+                        <td class="col-proto">{{ f.proto }}</td>
+                        <td class="col-label">
+                          {% if f.label == "BENIGN" %}
+                            <span class="badge ok">{{ f.label }}</span>
+                          {% else %}
+                            <span class="badge bad">{{ f.label }}</span>
+                          {% endif %}
+                        </td>
+                        <td class="col-conf mono t-right">{{ f.confidence }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <p class="hint">Click a flow row to inspect feature vector.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
       <div class="card">
         <div class="card-h">
-          <h3>Live Packet Capture (Wireshark Style)</h3>
+          <h3>Charts + Feature Inspector</h3>
           <div class="controls">
-            <button class="btn" id="pausePkts">Pause</button>
-            <button class="btn" id="clearPkts">Clear</button>
+            <button class="btn" id="resetCharts">Reset charts</button>
           </div>
         </div>
 
         <div class="card-b">
-          <div class="table-wrap packets">
-            <table class="stream" id="pktTable">
-              <thead>
-                <tr>
-                  <th class="col-time">Time</th>
-                  <th class="col-src">Src</th>
-                  <th class="col-dst">Dst</th>
-                  <th class="col-proto">Proto</th>
-                  <th class="col-sport">Sport</th>
-                  <th class="col-dport">Dport</th>
-                  <th class="col-len">Len</th>
-                  <th class="col-flag">Flags</th>
-                </tr>
-              </thead>
-
-              <tbody id="pktBody">
-                {% for p in init_pkts %}
-                <tr>
-                  <td class="col-time mono">{{ p.ts }}</td>
-                  <td class="col-src mono">{{ p.src }}</td>
-                  <td class="col-dst mono">{{ p.dst }}</td>
-                  <td class="col-proto">{{ p.proto }}</td>
-                  <td class="col-sport mono">{{ p.sport }}</td>
-                  <td class="col-dport mono">{{ p.dport }}</td>
-                  <td class="col-len mono">{{ p.len }}</td>
-                  <td class="col-flag mono">{{ p.flags }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div class="charts">
+            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+            <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
           </div>
-        </div>
-      </div>
 
-      <!-- FLOWS -->
-      <div class="card">
-        <div class="card-h">
-          <h3>Live Flow Predictions</h3>
-          <div class="controls">
-            <label class="toggle"><input type="checkbox" id="onlyAttacks"/> Only attacks</label>
-            <label class="toggle"><input type="checkbox" id="soundAlerts" checked/> Sound</label>
-            <button class="btn" id="pauseFlows">Pause</button>
-            <button class="btn" id="clearFlows">Clear</button>
-          </div>
-        </div>
-
-        <div class="card-b">
-          <div class="table-wrap flows">
-            <table class="stream" id="flowTable">
-              <thead>
-                <tr>
-                  <th class="col-time">Time</th>
-                  <th class="col-src">Src</th>
-                  <th class="col-dst">Dst</th>
-                  <th class="col-sport">Sport</th>
-                  <th class="col-dport">Dport</th>
-                  <th class="col-proto">Proto</th>
-                  <th class="col-label">Label</th>
-                  <th class="col-conf">Conf</th>
-                </tr>
-              </thead>
-
-              <tbody id="flowBody">
-                {% for f in init_flows %}
-                <tr data-features='{{ f.features|tojson }}' data-label="{{ f.label }}">
-                  <td class="col-time mono">{{ f.ts }}</td>
-                  <td class="col-src mono">{{ f.src }}</td>
-                  <td class="col-dst mono">{{ f.dst }}</td>
-                  <td class="col-sport mono">{{ f.sport }}</td>
-                  <td class="col-dport mono">{{ f.dport }}</td>
-                  <td class="col-proto">{{ f.proto }}</td>
-                  <td class="col-label">
-                    {% if f.label == "BENIGN" %}
-                      <span class="badge ok">{{ f.label }}</span>
-                    {% else %}
-                      <span class="badge bad">{{ f.label }}</span>
-                    {% endif %}
-                  </td>
-                  <td class="col-conf mono">{{ f.confidence }}</td>
-                </tr>
+          <div class="feature-wrap">
+            <table class="feat">
+              <thead><tr><th>Feature</th><th class="t-right">Value</th></tr></thead>
+              <tbody id="featBody">
+                {% for f in feature_order %}
+                <tr><td>{{ f }}</td><td class="t-right">—</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
 
-          <p style="margin:10px 0 0; color:#94a3b8; font-weight:900;">
-            Click a flow row to view the extracted feature vector.
-          </p>
         </div>
       </div>
+
     </div>
-
-    <!-- RIGHT -->
-    <div class="card">
-      <div class="card-h">
-        <h3>Charts + Feature Inspector</h3>
-        <div class="controls">
-          <button class="btn" id="resetCharts">Reset charts</button>
-        </div>
-      </div>
-
-      <div class="card-b">
-        <div class="charts">
-          <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
-          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
-          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
-        </div>
-
-        <div style="height:12px;"></div>
-
-        <div class="feature-wrap">
-          <table class="feat">
-            <thead><tr><th>Feature</th><th>Value</th></tr></thead>
-            <tbody id="featBody">
-              {% for f in feature_order %}
-              <tr><td>{{ f }}</td><td>—</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-
   </div>
 </div>
 {% endblock %}
+
+
+
 
 {% block scripts %}
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

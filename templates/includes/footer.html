@@ -1,6 +1,16 @@
-
-<footer class="mt-20">
-    <div class="bg-gray-800 text-white text-center p-4">
-        &copy; 2025 Anomaly-Based NIDS | Cosmos College of Management and Technology
-    </div>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p>
+      © <span id="year"></span>
+      <strong>Anomaly-Based NIDS</strong>
+      · Cosmos College of Management and Technology
+    </p>
+  </div>
 </footer>
+
+<script>
+  (function () {
+    var el = document.getElementById("year");
+    if (el) el.textContent = new Date().getFullYear();
+  })();
+</script>

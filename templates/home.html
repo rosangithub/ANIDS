@@ -1,8 +1,10 @@
-{% include "base.html" %}
+{% extends "base.html" %}
 
-{% include "includes/hero.html" %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home.css') }}">
+{% endblock %}
 
-  
-{% include "includes/article.html" %}
-
-{% include "includes/footer.html" %}
+{% block content %}
+  {% include "includes/hero.html" %}
+  {% include "includes/features.html" %}
+{% endblock %}
